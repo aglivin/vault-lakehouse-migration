@@ -1,6 +1,7 @@
 import argparse
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 STAGE = "@VDWH_DEV.RAW.LANDING"
@@ -38,10 +39,10 @@ def build_commands(target: str, load_date: str, out: Path) -> list[list[str]]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", choices=["snowflake", "databricks"], required=True)
-    parser.add_argument("--load-date", required=True)
+    parser.add_argument("--load-date", type=date.fromisoformat, required=True)
     parser.add_argument("--out", type=Path, default=Path("data/out"))
     args = parser.parse_args(argv)
-    commands = build_commands(args.target, args.load_date, args.out)
+    commands = build_commands(args.target, args.load_date.isoformat(), args.out)
     if not commands:
         print(f"no files for {args.load_date} in {args.out}", file=sys.stderr)
         return 1

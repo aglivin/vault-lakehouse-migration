@@ -53,7 +53,7 @@ def test_unknown_target_fails(tmp_path):
 
 
 def test_raw_entities_match_generator_layout():
-    project = yaml.safe_load(Path("dbt/dbt_project.yml").read_text())
+    project = yaml.safe_load((Path(__file__).resolve().parents[1] / "dbt" / "dbt_project.yml").read_text())
     expected = {
         f"{system}__{entity}": columns.split()
         for system, entities in LAYOUT.items()

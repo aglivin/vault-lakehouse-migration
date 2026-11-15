@@ -1,4 +1,5 @@
 {% macro load_raw(load_date) %}
+    {% do modules.datetime.date.fromisoformat(load_date | string) %}
     {% set database = target.database %}
     {% for name, columns in var('raw_entities').items() %}
         {% set system, entity = name.split('__') %}
@@ -40,6 +41,6 @@
     )
     fileformat = csv
     files = ('{{ load_date }}.csv')
-    format_options ('header' = 'true')
+    format_options ('header' = 'true', 'escape' = '"')
     copy_options ('force' = 'true')
 {% endmacro %}

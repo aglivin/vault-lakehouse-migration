@@ -124,11 +124,11 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 - [x] Inventory of Snowflake-specific SQL (`QUALIFY`, `VARIANT`, `FLATTEN`, time travel, `MERGE` behaviour, hash functions) ([docs/migration.md](docs/migration.md))
 - [x] Cross-database macros (`dbt.dispatch`) so the same models run on both targets
-- [ ] Hash-key compatibility check: identical keys on both platforms
+- [x] Hash-key compatibility check: identical keys on both platforms
 - [x] Run the full project on `databricks_dev` (Delta tables, Unity Catalog)
-- [ ] Data reconciliation job: row counts, sums and hash comparison per table, Snowflake vs Databricks
+- [x] Data reconciliation job: row counts, sums and hash comparison per table, Snowflake vs Databricks
 - [ ] Airflow DAG switched to the Databricks target with no DAG logic change
-- [ ] Cut-over plan and rollback plan
+- [x] Cut-over plan and rollback plan
 
 ### Phase 8 — Performance and cost
 

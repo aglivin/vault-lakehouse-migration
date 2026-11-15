@@ -110,9 +110,10 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 - [x] Astro project, local Airflow in Docker
 - [x] DAG: ingest → `dbt build` per layer with Cosmos (one task per model, tests included)
-- [ ] Sensors / dataset-driven scheduling between ingest and transform
-- [ ] Retries, SLAs, alerting on failure
-- [ ] Backfill of a past load date (load rule and replay: [docs/loading.md](docs/loading.md))
+- [x] Sensors / dataset-driven scheduling between ingest and transform (Airflow 3 assets)
+- [x] Retries, SLAs, alerting on failure (SLAs are Deadline Alerts in Airflow 3)
+- [x] Backfill of a past load date (load rule and replay: [docs/loading.md](docs/loading.md))
+- Runbook for the DAGs, assets, alerts, backfill and target switch: [docs/airflow.md](docs/airflow.md)
 
 ### Phase 6 — GitHub Actions CI/CD
 
@@ -129,7 +130,7 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 - [x] Hash-key compatibility check: identical keys on both platforms
 - [x] Run the full project on `databricks_dev` (Delta tables, Unity Catalog)
 - [x] Data reconciliation job: row counts, sums and hash comparison per table, Snowflake vs Databricks
-- [ ] Airflow DAG switched to the Databricks target with no DAG logic change
+- [ ] Airflow DAG switched to the Databricks target with no DAG logic change (91 of 92 tasks green; blocked by Unity Catalog table quota)
 - [x] Cut-over plan and rollback plan
 
 ### Phase 8 — Performance and cost

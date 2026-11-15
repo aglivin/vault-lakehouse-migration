@@ -10,7 +10,19 @@
 
 A Data Vault 2.0 warehouse that survives a source-system change and a move from Snowflake to Databricks, built with dbt Core, Airflow and GitHub Actions. All data is synthetic.
 
-**[Architecture overview (2 min read)](https://aglivin.github.io/vault-lakehouse-migration/overview.html)** · [dbt docs and live lineage](https://aglivin.github.io/vault-lakehouse-migration/)
+## Explore it interactively
+
+Three clickable pages with step-by-step simulators. Click a picture to open the page.
+
+<table>
+<tr>
+<td width="33%" align="center"><a href="https://aglivin.github.io/vault-lakehouse-migration/site/index.html"><img src="docs/img/site-map.png" alt="Project map"></a><br><b><a href="https://aglivin.github.io/vault-lakehouse-migration/site/index.html">Project map</a></b><br>Who does what: GitHub, Airflow, dbt, Snowflake, Databricks. Simulator: one day from pull request to reconciled marts.</td>
+<td width="33%" align="center"><a href="https://aglivin.github.io/vault-lakehouse-migration/site/data-flow.html"><img src="docs/img/site-data-flow.png" alt="Data flow"></a><br><b><a href="https://aglivin.github.io/vault-lakehouse-migration/site/data-flow.html">Data flow</a></b><br>Bronze to gold, table by table, with real rows. Simulator: new customer, address change, same file twice, delete and re-create, v2 system arrives.</td>
+<td width="33%" align="center"><a href="https://aglivin.github.io/vault-lakehouse-migration/site/platform.html"><img src="docs/img/site-platform.png" alt="Platform"></a><br><b><a href="https://aglivin.github.io/vault-lakehouse-migration/site/platform.html">Platform</a></b><br>Airflow assets and backfill, slim CI and deploy, Snowflake to Databricks migration with reconciliation and rollback.</td>
+</tr>
+</table>
+
+**[▶ Open the interactive project map](https://aglivin.github.io/vault-lakehouse-migration/site/index.html)** · [dbt docs and live lineage](https://aglivin.github.io/vault-lakehouse-migration/)
 
 ## How it is built
 

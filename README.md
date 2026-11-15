@@ -216,16 +216,16 @@ Details, alerts, backfill and target switch: [`docs/airflow.md`](docs/airflow.md
 ```mermaid
 flowchart LR
     subgraph ING["DAG vdwh_ingest"]
-        D1["dbt_deps"] --> LRAW["load_raw"] --> PUB["publish_raw_landed"]
+        LRAW["load_raw"] --> WAIT["wait_for_idle_transform"] --> PUB["publish_raw_landed"]
     end
     PUB --> AST(["Asset vdwh/raw_landed<br/>extra load_date"])
     AST --> RLD
     subgraph TRF["DAG vdwh_transform"]
-        RLD["resolve_load_date"] --> D2["dbt_deps"] --> SEED["dbt_seed"] --> ST["staging"] --> RV["raw_vault"] --> BV["business_vault"] --> MA["marts"] --> XT["cross_layer_tests"]
+        RLD["resolve_load_date"] --> SEED["dbt_seed"] --> ST["staging"] --> RV["raw_vault"] --> BV["business_vault"] --> MA["marts"] --> XT["cross_layer_tests"]
     end
 ```
 
-The four layer nodes are Cosmos task groups with one task per dbt model.
+The four layer nodes are Cosmos task groups with one task per dbt model. `wait_for_idle_transform` holds the next event until the previous transform run ends, so each run gets one load date.
 
 ## Repository map
 

@@ -1,0 +1,15 @@
+models:
+  - name: billing__revenue_by_tariff_month
+    description: >-
+      Billing data product, grain invoice_month and tariff_code. net_amount excludes VAT (the vat line carries net 0).
+      vat_amount is the tax_amount of vat lines; vat lines carry the tariff code of their invoice, so VAT is attributed to that tariff.
+      kwh sums energy lines only.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [invoice_month, tariff_code]
+    columns:
+      - name: invoice_month
+        data_tests: [not_null]
+      - name: tariff_code
+        data_tests: [not_null]

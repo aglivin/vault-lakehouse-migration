@@ -1,0 +1,32 @@
+models:
+  - name: fct_invoice_line
+    description: One row per invoice line (invoice_no, line_no), latest satellite state, including invoices of deleted contracts.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [invoice_no, line_no]
+    columns:
+      - name: invoice_no
+        data_tests: [not_null]
+      - name: line_no
+        data_tests: [not_null]
+      - name: contract_no
+        data_tests: [not_null]
+      - name: tariff_code
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_tariff')
+                field: tariff_code
+              config:
+                where: "tariff_code is not null"
+      - name: line_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [energy, base_fee, vat, energy_tax]
+  - name: dim_tariff
+    description: One row per tariff, latest satellite state.
+    columns:
+      - name: tariff_code
+        data_tests: [unique, not_null]

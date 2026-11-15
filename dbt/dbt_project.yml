@@ -21,3 +21,15 @@ models:
     marts:
       +materialized: table
       +schema: marts
+
+vars:
+  raw_entities:
+    crm_v1__customers: [customer_no, first_name, last_name, email, birth_date, street, city, postal_code, segment, updated_at, op]
+    crm_v1__customer_phones: [customer_no, phone_type, phone_number, op]
+    crm_v1__contacts: [contact_id, customer_no, contact_ts, channel, reason, resolved_first_contact]
+    billing_v1__tariffs: [tariff_code, commodity, name, price_per_kwh, base_fee_month, valid_from]
+    billing_v1__meters: [meter_no, commodity, install_date]
+    billing_v1__contracts: [contract_no, customer_no, tariff_code, meter_no, start_date, end_date, status, op]
+    billing_v1__invoices: [invoice_no, contract_no, invoice_date, period_from, period_to, due_date]
+    billing_v1__invoice_lines: [invoice_no, line_no, tariff_code, line_type, kwh, net_amount, tax_rate, tax_amount]
+    billing_v1__payments: [payment_id, invoice_no, payment_date, amount]

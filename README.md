@@ -86,7 +86,7 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 - [x] Effectivity satellite for customer–contract
 - [x] Status-tracking satellite (CDC deletes)
 - [x] Incremental loads tested over 3 load dates
-- [ ] dbt tests: unique and not-null keys, relationships, freshness, row-count reconciliation to source
+- [x] dbt tests: unique and not-null keys, relationships, freshness, row-count reconciliation to source
 
 ### Phase 3 — Source system change (v1 → v2)
 

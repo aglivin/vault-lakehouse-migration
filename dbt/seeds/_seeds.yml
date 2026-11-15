@@ -1,0 +1,7 @@
+seeds:
+  - name: expected_totals
+    config:
+      column_types:
+        load_date: date
+        metric: string
+        value: decimal(18, 2)

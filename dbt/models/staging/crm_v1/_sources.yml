@@ -1,6 +1,10 @@
 sources:
   - name: crm_v1
     schema: raw
+    config:
+      loaded_at_field: cast(_load_date as timestamp)
+      freshness:
+        warn_after: {count: 1, period: day}
     tables:
       - name: crm_v1__customers
       - name: crm_v1__customer_phones

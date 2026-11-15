@@ -51,7 +51,7 @@ A timed script for a live demo: [`docs/walkthrough.md`](docs/walkthrough.md). Ho
 
 ## Results
 
-Measured on `databricks_dev` after load date 2026-01-05. Every number comes from a query or script in the repo.
+Hub, link and mart numbers measured on `databricks_dev` after load date 2026-01-05. Every number comes from a query or script in the repo.
 
 | What | Result | Source |
 |---|---|---|
@@ -59,22 +59,25 @@ Measured on `databricks_dev` after load date 2026-01-05. Every number comes from
 | Links | customer-contract 4153, contract-meter 4153, contract-invoice 7612, invoice-tariff 7612 | `dbt/analyses/vault_row_counts.sql` |
 | Mart vs expected totals | 4421 invoices, net total 461626.22 on both sides | `dbt/analyses/mart_vs_expected_totals.sql` |
 | Snowflake vs Databricks | 0 differences in 35 tables | `scripts/compare_recon.py` on `data/recon/*.json` |
-| dbt tests | 139 | `dbt ls --resource-type test` |
+| dbt tests | 139 | `uv run dbt ls --project-dir dbt --profiles-dir dbt --resource-type test \| wc -l` |
 
 ## Quickstart
 
-Needs Python 3.12 with `uv`, and a Snowflake or Databricks account. Put credentials in `.env`; `dbt/profiles.yml` reads env vars only.
+Needs Python 3.12 with `uv`, the Snowflake CLI connection `personal` and the Databricks CLI profile `personal` (the upload script uses them), and a Snowflake or Databricks account.
 
 ```bash
-git clone https://github.com/aglivin/vault-lakehouse-migration.git && cd vault-lakehouse-migration && uv sync && set -a && source .env && set +a
+git clone https://github.com/aglivin/vault-lakehouse-migration.git && cd vault-lakehouse-migration
+uv sync
+cp .env.example .env
+set -a; source .env; set +a
 uv run dbt deps --project-dir dbt --profiles-dir dbt --target snowflake_dev
 uv run python -m data_generator
 uv run dbt run-operation create_raw_tables --project-dir dbt --profiles-dir dbt --target snowflake_dev
-for d in 2026-01-0{1..5}; do uv run python scripts/upload_landing.py --target snowflake --load-date $d && uv run dbt run-operation load_raw --args "{load_date: $d}" --project-dir dbt --profiles-dir dbt --target snowflake_dev; done
+for d in 2026-01-0{1..5}; do uv run python -m scripts.upload_landing --target snowflake --load-date $d && uv run dbt run-operation load_raw --args "{load_date: $d}" --project-dir dbt --profiles-dir dbt --target snowflake_dev; done
 scripts/build_by_load_date.sh --project-dir dbt --profiles-dir dbt --target snowflake_dev
 ```
 
-For Databricks use `--target databricks_dev` and `--target databricks` in the upload script. The build script runs `dbt build` once per load date.
+Fill in `.env` after the copy. `dbt/profiles.yml` reads env vars only. For Databricks use `--target databricks_dev` and `--target databricks` in the upload script. The build script runs `dbt build` once per load date.
 
 ## Roadmap
 
@@ -86,7 +89,7 @@ For Databricks use `--target databricks_dev` and `--target databricks` in the up
 - [x] `uv` project with `dbt-core`, `dbt-snowflake`, `dbt-databricks`, `sqlfluff`, `pre-commit`
 - [x] Snowflake CLI (`snow`) installed
 - [x] `profiles.yml` with targets `snowflake_dev` and `databricks_dev`; secrets only in env vars
-- [ ] GitHub Actions secrets for Snowflake and Databricks
+- [x] GitHub Actions secrets for Snowflake and Databricks
 
 ### Phase 1 — Synthetic sources
 
@@ -158,8 +161,8 @@ For Databricks use `--target databricks_dev` and `--target databricks` in the up
 ### Phase 9 — Show and tell
 
 - [x] Architecture diagram
-- [ ] 5-minute walkthrough script: business problem → vault → change of source → migration → CI/CD
-- [ ] Short notes on how Claude Code was used, and where it was wrong
+- [x] 5-minute walkthrough script: business problem → vault → change of source → migration → CI/CD
+- [x] Short notes on how Claude Code was used, and where it was wrong
 
 ## Repository layout
 

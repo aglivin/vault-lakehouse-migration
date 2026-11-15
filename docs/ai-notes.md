@@ -23,12 +23,16 @@ Claude Code wrote most of the first drafts in this repo. I reviewed every diff b
 Reviews caught each case before merge.
 
 1. **VAT in the net amount.** Generator v1 first put VAT into `net_amount`. The review ruled that VAT belongs only on the VAT line.
-2. **Silent row loss.** A staging filter on blank keys dropped rows without a trace. I removed it. Hubs now reject NULL keys.
+2. **Silent row loss.** A staging filter on blank keys dropped rows without a trace. I removed it. Staging keeps every source row; a blank key becomes a NULL hash key, and the hub skips it (test `assert_no_empty_business_key`).
 3. **A claim before the proof.** A public doc stated a cross-platform hash comparison before it existed (`docs/migration.md`). I corrected it, and the comparison came later with `recon__table_stats`.
 
-Other findings, all fixed before merge or in flight:
+Other findings, all fixed before merge:
 
 - `automate_dv` satellites broke on multi-date batches (4 unique-combination test errors). The vault is now built one load date per run.
 - The status-tracking satellite was not idempotent on reruns. It now anti-joins on existing rows.
 - The v2 initial load produced same-day CDC duplicates. It now keeps one end-of-day row per key.
-- Payment dedup across v1 and v2 could merge equal payments of the same source. In review of the star-schema PR, `dim_contract.status` mixed `active` and `ACTIVE` after the source change. Both are being fixed.
+
+Found in review of the star-schema work before merge:
+
+- Payment dedup across v1 and v2 could merge equal payments of the same source.
+- `dim_contract.status` mixed `active` and `ACTIVE` after the source change.

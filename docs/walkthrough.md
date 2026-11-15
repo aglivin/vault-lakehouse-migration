@@ -15,7 +15,7 @@ Open: [`README.md`](../README.md), the diagram and the results table.
 Open: [`dbt/models/raw_vault/hubs/hub_customer.sql`](../dbt/models/raw_vault/hubs/hub_customer.sql), [`dbt/models/raw_vault/links/link_customer_contract.sql`](../dbt/models/raw_vault/links/link_customer_contract.sql), [`dbt/models/raw_vault/sats/sat_customer_details_crm_v1.sql`](../dbt/models/raw_vault/sats/sat_customer_details_crm_v1.sql), then the [vault model diagram](architecture-vault-model.drawio.svg).
 
 - Five hubs hold business keys, four links hold relationships, satellites hold history. A satellite gets a new row only when its hashdiff changes.
-- Hubs reject NULL keys instead of dropping rows silently.
+- Staging keeps every source row; a blank key becomes a NULL hash key, and the hub skips it (test `assert_no_empty_business_key`).
 - Loads are idempotent per load date. [`scripts/build_by_load_date.sh`](../scripts/build_by_load_date.sh) builds one date per run, and a rerun adds no rows.
 
 ## 3. Source change (75 s)

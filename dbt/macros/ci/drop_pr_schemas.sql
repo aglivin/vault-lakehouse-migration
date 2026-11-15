@@ -1,6 +1,6 @@
 {% macro drop_pr_schemas() %}
     {% set prefix = target.schema | lower %}
-    {% if not prefix.startswith('ci_pr_') %}
+    {% if not modules.re.match('^ci_pr_[0-9]+$', prefix) %}
         {{ exceptions.raise_compiler_error('drop_pr_schemas runs only on a ci_pr_<number> schema, got ' ~ target.schema) }}
     {% endif %}
     {% set schemas = run_query(

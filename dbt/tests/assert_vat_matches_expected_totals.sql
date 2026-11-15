@@ -1,3 +1,5 @@
+{{ config(tags=['cross_layer']) }}
+
 with vault_load_date as (
     select cast(max(load_datetime) as date) as load_date
     from {{ ref('hub_invoice') }}

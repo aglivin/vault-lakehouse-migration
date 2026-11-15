@@ -12,7 +12,11 @@ from cosmos import (
     RenderConfig,
 )
 from cosmos.constants import TestIndirectSelection
-from cosmos.operators.local import DbtRunOperationLocalOperator, DbtTestLocalOperator
+from cosmos.operators.local import (
+    DbtRunOperationLocalOperator,
+    DbtSeedLocalOperator,
+    DbtTestLocalOperator,
+)
 
 DBT_PROJECT_DIR = Path(os.environ.get("DBT_PROJECT_DIR", "/usr/local/airflow/dbt"))
 DBT_EXECUTABLE = os.environ.get("DBT_EXECUTABLE", "/usr/local/airflow/dbt_venv/bin/dbt")
@@ -60,6 +64,14 @@ def vdwh_transform():
         task_id="dbt_deps",
         bash_command=f"{DBT_EXECUTABLE} deps --project-dir {DBT_PROJECT_DIR}",
     )
+    dbt_seed = DbtSeedLocalOperator(
+        task_id="dbt_seed",
+        project_dir=str(DBT_PROJECT_DIR),
+        profile_config=profile_config,
+        dbt_executable_path=DBT_EXECUTABLE,
+        append_env=True,
+        install_deps=False,
+    )
     load_raw = DbtRunOperationLocalOperator(
         task_id="load_raw",
         macro_name="load_raw",
@@ -70,7 +82,7 @@ def vdwh_transform():
         append_env=True,
         install_deps=False,
     )
-    dbt_deps >> load_raw
+    dbt_deps >> dbt_seed >> load_raw
     previous = load_raw
     for layer in LAYERS:
         group = DbtTaskGroup(

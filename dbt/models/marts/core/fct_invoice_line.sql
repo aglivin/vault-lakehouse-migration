@@ -1,3 +1,11 @@
+{{
+    config(
+        cluster_by=['tariff_code', 'invoice_date'],
+        liquid_clustered_by=['tariff_code', 'invoice_date'],
+        event_time='invoice_date'
+    )
+}}
+
 with invoice_master as (
     select
         invoice_hk,

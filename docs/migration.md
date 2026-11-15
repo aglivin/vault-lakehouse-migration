@@ -21,7 +21,7 @@ The same dbt project builds on `snowflake_dev` and `databricks_dev` (Unity Catal
 - `VARIANT`, `OBJECT`, `ARRAY` columns and `LATERAL FLATTEN`: Databricks uses `VARIANT` or `STRUCT`/`ARRAY` with `explode` and the `:` path syntax. The synthetic sources have no semi-structured data.
 - Time travel (`AT`/`BEFORE`, `UNDROP`) vs Delta `VERSION AS OF` / `TIMESTAMP AS OF` and `RESTORE`, with different retention defaults.
 - `MERGE` behaviour of incremental models: default `incremental_strategy`, duplicate source rows, schema evolution.
-- Transient tables, clustering keys, search optimization vs Delta `CLUSTER BY` (liquid clustering), `OPTIMIZE`, `VACUUM`.
+- Transient tables, search optimization, `VACUUM`. Clustering keys vs liquid clustering and the incremental strategies are measured in [performance.md](performance.md).
 - Streams and tasks vs Lakeflow pipelines and jobs.
 - Snowflake functions without a direct equivalent: `IFF`, `TRY_TO_*`, `TO_VARCHAR` with a format, `SPLIT_PART` index rules, `CONVERT_TIMEZONE`, `TIMESTAMP_LTZ`/`TZ` semantics.
 - Collation and case-sensitive string comparison.

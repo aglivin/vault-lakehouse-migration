@@ -1,6 +1,6 @@
 sources:
   - name: billing_v1
-    schema: raw
+    schema: "{{ var('raw_schema', 'raw') }}"
     config:
       loaded_at_field: cast(_load_date as timestamp)
       freshness:

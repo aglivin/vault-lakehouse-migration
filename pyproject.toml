@@ -1,0 +1,12 @@
+[project]
+name = "vault-lakehouse-migration"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "dbt-core>=1.12.6",
+    "dbt-databricks>=1.13.0",
+    "dbt-snowflake>=1.12.5",
+    "pre-commit>=4.7.0",
+    "sqlfluff>=4.5.0",
+    "sqlfluff-templater-dbt>=4.5.0",
+]

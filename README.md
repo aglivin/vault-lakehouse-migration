@@ -1,7 +1,7 @@
 # vault-lakehouse-migration
 
 An end-to-end Data Vault 2.0 warehouse for a fictional energy utility, built with **dbt Core** on **Snowflake**,
-orchestrated by **Airflow**, deployed through **Azure DevOps**, and then migrated to **Databricks** with the same dbt project.
+orchestrated by **Airflow**, deployed through **GitHub Actions**, and then migrated to **Databricks** with the same dbt project.
 
 The repo has two goals:
 
@@ -18,10 +18,10 @@ All data is synthetic. No client code, schemas or data are used.
 | Warehouse (target) | Databricks (Unity Catalog, SQL Warehouse) |
 | Transformation | dbt Core, `automate_dv` (Data Vault 2.0 macros), `dbt_utils`, `dbt_expectations` |
 | Orchestration | Apache Airflow (Astro CLI, `astronomer-cosmos` for dbt) |
-| CI/CD | Azure DevOps Repos + Pipelines (mirror of this GitHub repo) |
+| CI/CD | GitHub Actions |
 | Language | SQL, Python |
 | Quality | dbt tests, `sqlfluff`, `pre-commit` |
-| AI tooling | Claude Code, GitHub Copilot |
+| AI tooling | Claude Code |
 
 ## Business scenario
 
@@ -64,11 +64,11 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 - [ ] Snowflake trial account (30 days), warehouse `XS`, role `TRANSFORMER`, database `VDWH_DEV`
 - [ ] Databricks Free Edition workspace (personal, not a client workspace), Unity Catalog `vdwh_dev`
-- [ ] Azure DevOps organisation with a personal Microsoft account (not a client tenant), project `vault-lakehouse-migration`
-- [ ] Docker Desktop running; Astro CLI installed
-- [ ] `uv` project with `dbt-core`, `dbt-snowflake`, `dbt-databricks`, `sqlfluff`, `pre-commit`
-- [ ] `profiles.yml` with targets `snowflake_dev` and `databricks_dev`; secrets only in env vars
-- [ ] GitHub Copilot enabled in the IDE
+- [x] Docker Desktop running; Astro CLI installed
+- [x] `uv` project with `dbt-core`, `dbt-snowflake`, `dbt-databricks`, `sqlfluff`, `pre-commit`
+- [x] Snowflake CLI (`snow`) installed
+- [x] `profiles.yml` with targets `snowflake_dev` and `databricks_dev`; secrets only in env vars
+- [ ] GitHub Actions secrets for Snowflake and Databricks
 
 ### Phase 1 — Synthetic sources
 
@@ -112,13 +112,13 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 - [ ] Retries, SLAs, alerting on failure
 - [ ] Backfill of a past load date
 
-### Phase 6 — Azure DevOps CI/CD
+### Phase 6 — GitHub Actions CI/CD
 
-- [ ] Mirror the repo to Azure Repos
-- [ ] PR pipeline: `sqlfluff lint`, `dbt build --select state:modified+` (slim CI) against a PR schema
-- [ ] Main pipeline: deploy to `prod` target, generate and publish dbt docs
-- [ ] Variable groups / Key Vault for secrets; no secrets in YAML
-- [ ] Branch policies: required review, required green build
+- [ ] PR workflow: `sqlfluff lint`, `dbt build --select state:modified+` (slim CI) against a PR schema
+- [ ] Main workflow: deploy to `prod` target, generate and publish dbt docs to GitHub Pages
+- [ ] Secrets in GitHub Actions secrets and environments; no secrets in YAML
+- [ ] Branch protection: required review, required green build
+- [x] Attribution check: build fails on AI co-author trailers
 
 ### Phase 7 — Migration Snowflake → Databricks
 
@@ -141,7 +141,7 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 - [ ] Architecture diagram
 - [ ] 5-minute walkthrough script: business problem → vault → change of source → migration → CI/CD
-- [ ] Short notes on how Claude Code and Copilot were used, and where they were wrong
+- [ ] Short notes on how Claude Code was used, and where it was wrong
 
 ## Interview topics to prepare
 
@@ -152,7 +152,7 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 - Databricks: Delta Lake, Unity Catalog, Liquid Clustering, Photon, serverless, DLT vs dbt
 - Migration: dialect differences, validation strategy, parallel run, cut-over
 - Airflow: scheduler, executors, idempotent DAGs, backfill, datasets, Cosmos
-- Azure DevOps: YAML pipelines, stages, environments, approvals, service connections
+- CI/CD: GitHub Actions workflows, environments, approvals, secrets (and how this maps to Azure DevOps pipelines)
 - SQL: window functions, gaps-and-islands, deduplication, slowly changing history queries
 
 ## Repository layout (planned)
@@ -161,7 +161,7 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 data_generator/   Python synthetic source generator
 dbt/              dbt project (staging, raw_vault, business_vault, marts)
 airflow/          Astro project and DAGs
-ci/               Azure DevOps pipeline YAML
+.github/workflows GitHub Actions
 docs/             diagrams and write-ups
 ```
 

@@ -59,17 +59,14 @@ class Plan:
         self.account = {no: str(uuid.UUID(int=rng.getrandbits(128), version=4)) for no in customers}
         live = latest_state(world.contracts, lambda r: r["contract_no"], self.before)
         self.skipped = self.pick_non_migrated(rng, live)
-        retired = {r["contract_no"] for r in world.contracts if r["_load_date"] <= self.before} - {r["contract_no"] for r in live}
-        contracts = [no for no in first_seen(world.contracts, "contract_no") if no not in self.skipped | retired]
+        alive = {r["contract_no"] for r in latest_state(world.contracts, lambda r: r["contract_no"], CUTOVER_DATE)}
+        seen_before = {r["contract_no"] for r in world.contracts if r["_load_date"] <= self.before}
+        dropped = self.skipped | (seen_before - alive)
+        contracts = [no for no in first_seen(world.contracts, "contract_no") if no not in dropped]
         self.agreement = numbered("AGR-", 7, contracts)
         self.product = {code: f"PRD-{code}" for code in first_seen(world.tariffs, "tariff_code")}
         self.meter_point = numbered("MP-", 7, first_seen(world.meters, "meter_no"))
-        gone = {r["contract_no"] for r in live} - {r["contract_no"] for r in latest_state(world.contracts, lambda r: r["contract_no"], CUTOVER_DATE)}
-        invoices = [
-            no
-            for no, r in first_seen(world.invoices, "invoice_no").items()
-            if r["contract_no"] in self.agreement and r["contract_no"] not in gone
-        ]
+        invoices = [no for no, r in first_seen(world.invoices, "invoice_no").items() if r["contract_no"] in self.agreement]
         self.document = numbered("DOC-", 9, invoices)
         self.settlement = numbered("STL-", 9, (r["payment_id"] for r in world.payments if r["invoice_no"] in self.document))
         self.interaction = numbered("IA-", 8, (r["contact_id"] for r in world.contacts))
@@ -88,14 +85,17 @@ class Plan:
 
     def key_map(self, system: str) -> list[dict]:
         w = self.world
-        old = lambda table: {r[next(iter(r))] for r in table if r["_load_date"] <= self.before}
+
+        def old(table: list[dict], column: str) -> set[str]:
+            return {r[column] for r in table if r["_load_date"] <= self.before}
+
         groups = {
-            "crm_v2": [("customer", old(w.customers), self.account)],
+            "crm_v2": [("customer", old(w.customers, "customer_no"), self.account)],
             "billing_v2": [
-                ("contract", old(w.contracts), self.agreement),
-                ("invoice", old(w.invoices), self.document),
-                ("tariff", old(w.tariffs), self.product),
-                ("meter", old(w.meters), self.meter_point),
+                ("contract", old(w.contracts, "contract_no"), self.agreement),
+                ("invoice", old(w.invoices, "invoice_no"), self.document),
+                ("tariff", old(w.tariffs, "tariff_code"), self.product),
+                ("meter", old(w.meters, "meter_no"), self.meter_point),
             ],
         }[system]
         return [

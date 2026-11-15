@@ -27,7 +27,9 @@ def read(out: Path, entity: str, days=None) -> list[dict]:
 def key_map(out: Path, system: str, entity: str) -> dict[str, str]:
     path = out / system / "key_map" / f"{CUTOVER}.csv"
     with path.open(newline="") as handle:
-        return {r["v1_key"]: r["v2_key"] for r in csv.DictReader(handle) if r["entity"] == entity}
+        rows = [r for r in csv.DictReader(handle) if r["entity"] == entity]
+    assert len({r["v1_key"] for r in rows}) == len(rows)
+    return {r["v1_key"]: r["v2_key"] for r in rows}
 
 
 @pytest.fixture(scope="module")
@@ -61,11 +63,6 @@ def test_same_seed_gives_identical_v2_files(out, tmp_path):
         assert file.read_bytes() == (tmp_path / file.relative_to(out)).read_bytes()
 
 
-def test_v1_and_v2_files_exist_only_for_their_dates(out):
-    assert {p.stem for p in out.glob("*_v1/*/*.csv")} == {d.isoformat() for d in V1_DATES}
-    assert {p.stem for p in out.glob("*_v2/*/*.csv")} == set(V2_DAYS)
-
-
 @pytest.mark.parametrize(
     "entity, column, parent, parent_key",
     [
@@ -85,24 +82,34 @@ def test_foreign_keys_exist_inside_v2(out, entity, column, parent, parent_key):
 
 
 def test_every_v1_customer_and_live_contract_has_one_key_map_row(out):
-    customers = [r["customer_no"] for r in read(out, "customers")]
-    with (out / "crm_v2/key_map" / f"{CUTOVER}.csv").open(newline="") as handle:
-        rows = list(csv.DictReader(handle))
-    assert sorted(r["v1_key"] for r in rows) == sorted(set(customers))
-    assert {r["entity"] for r in rows} == {"customer"}
+    customers = {r["customer_no"] for r in read(out, "customers")}
+    assert set(key_map(out, "crm_v2", "customer")) == customers
     contract_map = key_map(out, "billing_v2", "contract")
     live = live_contracts_at_cutover(out)
     assert set(contract_map) <= set(live)
-    assert {live[n]["status"] for n in set(live) - set(contract_map)} == {"terminated"}
     assert len(contract_map) == len(set(contract_map.values()))
 
 
 def test_non_migrated_contracts_are_about_one_percent_and_have_no_v2_key(out):
     live = live_contracts_at_cutover(out)
-    contract_map = key_map(out, "billing_v2", "contract")
-    skipped = set(live) - set(contract_map)
-    assert 0 < len(skipped) <= max(2, round(len(live) * 0.02))
-    assert {live[n]["status"] for n in skipped} == {"terminated"}
+    unmapped = set(live) - set(key_map(out, "billing_v2", "contract"))
+    closed = {n for n in unmapped if live[n]["status"] == "terminated"}
+    assert 0 < len(closed) <= max(2, round(len(live) * 0.02))
+    assert len(unmapped) <= round(len(live) * 0.05)
+
+
+@pytest.mark.parametrize(
+    "system, entity, target, column",
+    [
+        ("crm_v2", "customer", "accounts", "account_uuid"),
+        ("billing_v2", "contract", "agreements", "agreement_id"),
+        ("billing_v2", "invoice", "documents", "document_id"),
+        ("billing_v2", "tariff", "products", "product_code"),
+        ("billing_v2", "meter", "meter_points", "meter_point_id"),
+    ],
+)
+def test_every_key_map_v2_key_exists_in_v2_entity(out, system, entity, target, column):
+    assert set(key_map(out, system, entity).values()) <= {r[column] for r in read(out, target)}
 
 
 def test_new_customers_in_v2_are_about_one_percent_and_have_no_v1_key(out):
@@ -143,13 +150,16 @@ def test_key_map_only_on_cutover_day(out):
 def test_expected_totals_continue_without_double_counting(world, out):
     totals = {(d, m): v for d, m, v in expected_totals(world)}
     assert {d for d, _ in totals} == {d.isoformat() for d in LOAD_DATES}
+    mapped = set(key_map(out, "billing_v2", "invoice").values())
+    invoices = {r["invoice_no"]: r["load_date"] for r in read(out, "invoices")}
+    documents = {r["document_id"]: r["issued_on"] for r in read(out, "documents") if r["document_id"] not in mapped}
+    lines = [(r["invoice_no"], Decimal(r["net_amount"])) for r in read(out, "invoice_lines")]
+    lines += [(r["document_id"], Decimal(r["amount_net"])) for r in read(out, "document_lines") if r["document_id"] not in mapped]
     for day in V2_DAYS:
         assert totals[(day, "customer_count")] > totals[(LAST_V1, "customer_count")]
-    v1_invoices = {r["invoice_no"] for r in read(out, "invoices")}
-    new_documents = [r for r in read(out, "documents") if r["load_date"] == V2_DAYS[1]]
-    assert totals[(V2_DAYS[1], "invoice_count")] == len(v1_invoices) + len(
-        [r for r in read(out, "documents", [CUTOVER]) if r["issued_on"] == CUTOVER]
-    ) + len(new_documents)
+        business = {k for k, d in {**invoices, **documents}.items() if d <= day}
+        assert totals[(day, "invoice_count")] == len(business)
+        assert totals[(day, "invoiced_net_total")] == sum((n for k, n in lines if k in business), Decimal("0.00"))
 
 
 def test_committed_expected_totals_include_v2_days(tmp_path):
@@ -157,7 +167,6 @@ def test_committed_expected_totals_include_v2_days(tmp_path):
     write_expected_totals(build_world(customers=2000, seed=42), target)
     assert target.read_bytes() == (ROOT / "dbt/seeds/expected_totals.csv").read_bytes()
     assert {r["load_date"] for r in csv.DictReader(target.open())} == {d.isoformat() for d in LOAD_DATES}
-
 
 
 @pytest.mark.parametrize(

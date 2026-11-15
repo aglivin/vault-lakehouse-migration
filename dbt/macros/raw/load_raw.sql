@@ -1,11 +1,14 @@
 {% macro load_raw(load_date) %}
     {% do modules.datetime.date.fromisoformat(load_date | string) %}
     {% set database = target.database %}
+    {% set version = 'v2' if load_date | string >= var('cutover_date') else 'v1' %}
     {% for name, columns in var('raw_entities').items() %}
         {% set system, entity = name.split('__') %}
+        {% if system.endswith('_' ~ version) %}
         {% set table = database ~ '.raw.' ~ name %}
         {% do run_query('delete from ' ~ table ~ " where _load_date = '" ~ load_date ~ "'") %}
         {% do run_query(vdwh.copy_into_raw(database, table, columns, system, entity, load_date)) %}
+        {% endif %}
     {% endfor %}
 {% endmacro %}
 

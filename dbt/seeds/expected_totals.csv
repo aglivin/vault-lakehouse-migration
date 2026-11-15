@@ -11,3 +11,11 @@ load_date,metric,value
 2026-01-03,active_contracts,1942
 2026-01-03,invoice_count,3256
 2026-01-03,invoiced_net_total,343273.21
+2026-01-04,customer_count,2102
+2026-01-04,active_contracts,1895
+2026-01-04,invoice_count,3845
+2026-01-04,invoiced_net_total,404273.55
+2026-01-05,customer_count,2123
+2026-01-05,active_contracts,1851
+2026-01-05,invoice_count,4421
+2026-01-05,invoiced_net_total,461626.22

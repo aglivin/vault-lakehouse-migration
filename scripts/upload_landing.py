@@ -4,6 +4,8 @@ import sys
 from datetime import date
 from pathlib import Path
 
+from data_generator.world import CUTOVER_DATE
+
 STAGE = "@VDWH_DEV.RAW.LANDING"
 VOLUME = "dbfs:/Volumes/vdwh_dev/raw/landing"
 SNOWFLAKE_CONNECTION = "personal"
@@ -11,7 +13,8 @@ DATABRICKS_PROFILE = "personal"
 
 
 def landing_files(out: Path, load_date: str) -> list[Path]:
-    return sorted(out.glob(f"*/*/{load_date}.csv"))
+    version = "v2" if date.fromisoformat(load_date) >= CUTOVER_DATE else "v1"
+    return sorted(out.glob(f"*_{version}/*/{load_date}.csv"))
 
 
 def build_commands(target: str, load_date: str, out: Path) -> list[list[str]]:

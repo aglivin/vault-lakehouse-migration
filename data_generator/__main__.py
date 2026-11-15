@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 from data_generator.render_v1 import render_v1
+from data_generator.render_v2 import render_v2
 from data_generator.totals import write_expected_totals
 from data_generator.world import build_world
 
@@ -17,6 +18,7 @@ def main() -> None:
     args = parser.parse_args()
     world = build_world(args.customers, args.seed)
     render_v1(world, args.out)
+    render_v2(world, args.out)
     write_expected_totals(world, args.totals_out)
 
 

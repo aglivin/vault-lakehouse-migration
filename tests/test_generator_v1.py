@@ -7,10 +7,10 @@ import pytest
 
 from data_generator.render_v1 import LAYOUT, render_v1
 from data_generator.totals import expected_totals, write_expected_totals
-from data_generator.world import LOAD_DATES, build_world
+from data_generator.world import V1_DATES, build_world
 
 ROOT = Path(__file__).resolve().parent.parent
-DAYS = [d.isoformat() for d in LOAD_DATES]
+DAYS = [d.isoformat() for d in V1_DATES]
 
 
 def read_all(out: Path, entity: str) -> list[dict]:

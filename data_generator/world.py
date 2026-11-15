@@ -7,7 +7,10 @@ from faker import Faker
 
 from data_generator import cdc
 
-LOAD_DATES = (date(2026, 1, 1), date(2026, 1, 2), date(2026, 1, 3))
+CUTOVER_DATE = date(2026, 1, 4)
+LOAD_DATES = (date(2026, 1, 1), date(2026, 1, 2), date(2026, 1, 3), date(2026, 1, 4), date(2026, 1, 5))
+V1_DATES = tuple(d for d in LOAD_DATES if d < CUTOVER_DATE)
+V2_DATES = tuple(d for d in LOAD_DATES if d >= CUTOVER_DATE)
 ZERO = Decimal("0.00")
 VAT_RATE = Decimal("0.20")
 ENERGY_TAX_PER_KWH = Decimal("0.0150")
@@ -37,6 +40,7 @@ class World:
     invoice_lines: list[dict] = field(default_factory=list)
     payments: list[dict] = field(default_factory=list)
     recreated_contract_no: str = ""
+    seed: int = 0
 
 
 class WorldBuilder:
@@ -170,11 +174,12 @@ class WorldBuilder:
 
 def build_world(customers: int, seed: int) -> World:
     builder = WorldBuilder(seed)
+    builder.world.seed = seed
     first_day, *delta_days = LOAD_DATES
     builder.add_tariffs(first_day)
     for _ in range(customers):
         builder.add_customer(first_day)
     cdc.add_contacts(builder, first_day, 0.3)
     for day in delta_days:
-        cdc.apply_delta_day(builder, day)
+        cdc.apply_delta_day(builder, day, v2=day >= CUTOVER_DATE)
     return builder.world

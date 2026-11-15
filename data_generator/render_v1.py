@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
 
-from data_generator.world import LOAD_DATES, World
+from data_generator.world import V1_DATES, World
 
 LAYOUT = {
     "crm_v1": {
@@ -31,6 +31,6 @@ def write_csv(path: Path, columns: list[str], rows: list[dict]) -> None:
 def render_v1(world: World, out: Path) -> None:
     for system, entities in LAYOUT.items():
         for entity, columns in entities.items():
-            for day in LOAD_DATES:
+            for day in V1_DATES:
                 rows = [r for r in getattr(world, entity) if r["_load_date"] == day]
                 write_csv(out / system / entity / f"{day.isoformat()}.csv", columns.split(), rows)

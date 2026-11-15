@@ -1,0 +1,2 @@
+dbt/models/staging/**/stg_*.sql
+dbt/models/raw_vault/hubs/hub_*.sql

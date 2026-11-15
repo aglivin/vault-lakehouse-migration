@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: hub_customer
+    columns:
+      - name: customer_hk
+        data_tests:
+          - unique
+          - not_null
+  - name: hub_contract
+    columns:
+      - name: contract_hk
+        data_tests:
+          - unique
+          - not_null
+  - name: hub_meter
+    columns:
+      - name: meter_hk
+        data_tests:
+          - unique
+          - not_null
+  - name: hub_invoice
+    columns:
+      - name: invoice_hk
+        data_tests:
+          - unique
+          - not_null
+  - name: hub_tariff
+    columns:
+      - name: tariff_hk
+        data_tests:
+          - unique
+          - not_null

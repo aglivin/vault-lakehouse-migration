@@ -1,33 +1,18 @@
-import os
 from datetime import datetime, timedelta
-from pathlib import Path
 
-from airflow.providers.standard.operators.bash import BashOperator
-from airflow.sdk import Param, dag
-from cosmos import (
-    DbtTaskGroup,
-    ExecutionConfig,
-    ProfileConfig,
-    ProjectConfig,
-    RenderConfig,
-)
+from airflow.sdk import Param, dag, task
+from cosmos import DbtTaskGroup, ExecutionConfig, ProjectConfig, RenderConfig
 from cosmos.constants import TestIndirectSelection
-from cosmos.operators.local import (
-    DbtRunOperationLocalOperator,
-    DbtSeedLocalOperator,
-    DbtTestLocalOperator,
-)
+from cosmos.operators.local import DbtSeedLocalOperator, DbtTestLocalOperator
 
-DBT_PROJECT_DIR = Path(os.environ.get("DBT_PROJECT_DIR", "/usr/local/airflow/dbt"))
-DBT_EXECUTABLE = os.environ.get("DBT_EXECUTABLE", "/usr/local/airflow/dbt_venv/bin/dbt")
+from include.vdwh_alerts import notify_failure, run_deadline
+from include.vdwh_assets import RAW_LANDED, single_load_date
+from include.vdwh_dbt import DBT_EXECUTABLE, DBT_PROJECT_DIR, dbt_deps_task, profile_config
+
 CROSS_LAYER_TESTS = ["tag:cross_layer"]
 LAYERS = ["staging", "raw_vault", "business_vault", "marts"]
+LOAD_DATE = "{{ ti.xcom_pull(task_ids='resolve_load_date') }}"
 
-profile_config = ProfileConfig(
-    profile_name="vdwh",
-    target_name=os.environ.get("DBT_TARGET", "snowflake_dev"),
-    profiles_yml_filepath=DBT_PROJECT_DIR / "profiles.yml",
-)
 project_config = ProjectConfig(dbt_project_path=DBT_PROJECT_DIR, install_dbt_deps=False)
 execution_config = ExecutionConfig(
     dbt_executable_path=DBT_EXECUTABLE,
@@ -36,16 +21,20 @@ execution_config = ExecutionConfig(
 )
 operator_args = {
     "append_env": True,
-    "vars": {"load_date": "{{ ds }}"},
+    "vars": {"load_date": LOAD_DATE},
     "full_refresh": "{{ params.full_refresh }}",
 }
 
 
+@task
+def resolve_load_date(*, triggering_asset_events) -> str:
+    return single_load_date(triggering_asset_events)
+
+
 @dag(
     dag_id="vdwh_transform",
-    schedule="@daily",
+    schedule=[RAW_LANDED],
     start_date=datetime(2026, 1, 1),
-    end_date=datetime(2026, 1, 5),
     catchup=False,
     is_paused_upon_creation=True,
     max_active_runs=1,
@@ -57,13 +46,14 @@ operator_args = {
             description="Rebuilds the incremental vault from the run date only. Use it for the first date.",
         )
     },
-    default_args={"retries": 2, "retry_delay": timedelta(minutes=1)},
+    deadline=run_deadline(timedelta(minutes=60)),
+    default_args={
+        "retries": 2,
+        "retry_delay": timedelta(minutes=1),
+        "on_failure_callback": notify_failure,
+    },
 )
 def vdwh_transform():
-    dbt_deps = BashOperator(
-        task_id="dbt_deps",
-        bash_command=f"{DBT_EXECUTABLE} deps --project-dir {DBT_PROJECT_DIR}",
-    )
     dbt_seed = DbtSeedLocalOperator(
         task_id="dbt_seed",
         project_dir=str(DBT_PROJECT_DIR),
@@ -72,18 +62,7 @@ def vdwh_transform():
         append_env=True,
         install_deps=False,
     )
-    load_raw = DbtRunOperationLocalOperator(
-        task_id="load_raw",
-        macro_name="load_raw",
-        args={"load_date": "{{ ds }}"},
-        project_dir=str(DBT_PROJECT_DIR),
-        profile_config=profile_config,
-        dbt_executable_path=DBT_EXECUTABLE,
-        append_env=True,
-        install_deps=False,
-    )
-    dbt_deps >> dbt_seed >> load_raw
-    previous = load_raw
+    previous = resolve_load_date() >> dbt_deps_task() >> dbt_seed
     for layer in LAYERS:
         group = DbtTaskGroup(
             group_id=layer,
@@ -103,7 +82,7 @@ def vdwh_transform():
         append_env=True,
         install_deps=False,
         select=CROSS_LAYER_TESTS,
-        vars={"load_date": "{{ ds }}"},
+        vars={"load_date": LOAD_DATE},
     )
     previous >> cross_layer_tests
 

@@ -3,10 +3,16 @@
 [![ci](https://github.com/aglivin/vault-lakehouse-migration/actions/workflows/ci.yml/badge.svg)](https://github.com/aglivin/vault-lakehouse-migration/actions/workflows/ci.yml)
 [![deploy](https://github.com/aglivin/vault-lakehouse-migration/actions/workflows/deploy.yml/badge.svg)](https://github.com/aglivin/vault-lakehouse-migration/actions/workflows/deploy.yml)
 [![dbt docs](https://img.shields.io/badge/dbt%20docs-live%20lineage-0b63ce)](https://aglivin.github.io/vault-lakehouse-migration/)
+![dbt Core](https://img.shields.io/badge/dbt%20Core-1.12-FF694B?logo=dbt&logoColor=white)
+![Snowflake](https://img.shields.io/badge/Snowflake-source%20platform-29B5E8?logo=snowflake&logoColor=white)
+![Databricks](https://img.shields.io/badge/Databricks-target%20platform-FF3621?logo=databricks&logoColor=white)
+![Airflow](https://img.shields.io/badge/Airflow%203-Cosmos-017CEE?logo=apacheairflow&logoColor=white)
 
 A Data Vault 2.0 warehouse that survives a source-system change and a move from Snowflake to Databricks, built with dbt Core, Airflow and GitHub Actions. All data is synthetic.
 
 **[Architecture overview (2 min read)](https://aglivin.github.io/vault-lakehouse-migration/overview.html)** · [dbt docs and live lineage](https://aglivin.github.io/vault-lakehouse-migration/)
+
+[Scenario](#scenario) · [Where to start](#where-to-start) · [5-minute tour](#5-minute-tour) · [Results](#results) · [Layers](#layers) · [Architecture](#architecture) · [Repository map](#repository-map) · [Quickstart](#quickstart) · [Known limits](#known-limits) · [Roadmap](#roadmap)
 
 The same dbt project runs on two lanes, Snowflake and Databricks.
 
@@ -40,6 +46,23 @@ flowchart LR
 ```
 
 Detailed diagrams: [platform](docs/architecture-platform.drawio.svg), [vault model](docs/architecture-vault-model.drawio.svg), [source change and migration timeline](docs/architecture-change-migration.drawio.svg). Editable source: [`docs/architecture.drawio`](docs/architecture.drawio).
+
+## Scenario
+
+A utility sells electricity and gas to residential customers. Data comes from two operational systems:
+
+- **Billing**: contracts, meters, tariffs, invoices, invoice lines, payments
+- **CRM**: customers, phone numbers, call-centre contacts
+
+On load date 2026-01-04 both systems are replaced (Billing v1 → v2, CRM v1 → v2) with new keys and new column names. The Data Vault absorbs the change with no break in history and no change for consumers. After that, the whole warehouse moves from Snowflake to Databricks with the same dbt project.
+
+| Area | Tool |
+|---|---|
+| Warehouse | Snowflake (current), Databricks with Unity Catalog (target) |
+| Transformation | dbt Core, `automate_dv` (Data Vault 2.0), `dbt_utils` |
+| Orchestration | Apache Airflow 3 (Astro CLI, `astronomer-cosmos`) |
+| CI/CD | GitHub Actions, GitHub Pages for dbt docs |
+| Quality | dbt tests and contracts, `sqlfluff`, `pytest`, `pre-commit` |
 
 ## Where to start
 
@@ -277,9 +300,15 @@ Fill in `.env` after step 1. `dbt/profiles.yml` reads env vars only. For Databri
 ## Known limits
 
 - Databricks: the Unity Catalog metastore table quota of the free workspace is full (dropped tables still count until their retention ends). Models added after the reconciliation snapshot are built and tested on Snowflake only. In one local Astro run on 2026-11-15 (PR #29), the Airflow target switch ran 91 of 92 tasks green on Databricks; the last task needs a new table.
+- Performance: only X-Small and 2X-Small warehouses were measured, so there is no full sizing comparison.
 - Volumes are small (2000 customers by default, 50 000 for the performance runs).
 
 ## Roadmap
+
+52 of 54 items done. The two open items are listed under [Known limits](#known-limits).
+
+<details>
+<summary>Show all phases</summary>
 
 ### Phase 0 — Accounts and local setup
 
@@ -366,4 +395,4 @@ Fill in `.env` after step 1. `dbt/profiles.yml` reads env vars only. For Databri
 - [x] 5-minute walkthrough script: business problem → vault → change of source → migration → CI/CD
 - [x] Short notes on how Claude Code was used, and where it was wrong
 
-Work in progress. Unticked boxes are not done.
+</details>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vault-lakehouse-migration: overview</title>
+<meta name="description" content="Data Vault 2.0 with dbt on Snowflake, migrated to Databricks, orchestrated by Airflow, deployed by GitHub Actions.">
+<style>
+:root{--bg:#fff;--fg:#1c2330;--mut:#5b6677;--card:#f5f7fa;--line:#dde3ea;--acc:#0b63ce;--ok:#0a7d4f;--l1:#e8f1fd;--l2:#e6f6ee;--l3:#fdf3e3;--l4:#f1eafc;--l5:#fde9ea;--st:#8a96a8}
+@media(prefers-color-scheme:dark){:root{--bg:#10151d;--fg:#e4e9f0;--mut:#9aa6b8;--card:#171e29;--line:#2a3443;--acc:#6aa8ff;--ok:#4cd39a;--l1:#16283f;--l2:#12302a;--l3:#35290f;--l4:#2a2040;--l5:#3a1d22;--st:#6d7a8f}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:56px}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--acc)}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);display:flex;gap:4px;overflow-x:auto;padding:8px 16px;white-space:nowrap}
+nav a{text-decoration:none;color:var(--mut);padding:4px 10px;border-radius:14px;font-size:14px}
+nav a:hover{background:var(--card);color:var(--fg)}
+main{max-width:960px;margin:0 auto;padding:0 16px 48px}
+section{padding-top:36px}
+h1{font-size:clamp(26px,5vw,38px);line-height:1.15;margin:32px 0 12px}
+h2{font-size:24px;margin:0 0 12px}
+h3{font-size:17px;margin:20px 0 6px}
+p{margin:8px 0}
+.lead{font-size:18px;color:var(--mut);max-width:720px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:20px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h3{margin-top:0}
+.big{font-size:26px;font-weight:700;color:var(--ok);line-height:1.2}
+.src{font-size:13px;color:var(--mut);margin-top:6px;word-break:break-word}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;word-break:break-word}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mut);font-weight:600}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--fg);font:12px system-ui,sans-serif}
+svg .t{font-weight:600}
+svg .m{fill:var(--mut);font-size:11px}
+svg rect{stroke:var(--line)}
+svg path{stroke:var(--st);fill:none;stroke-width:1.5}
+svg .ar{fill:var(--st);stroke:none}
+ul{padding-left:20px;margin:8px 0}
+li{margin:4px 0}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+footer{border-top:1px solid var(--line);padding:16px;text-align:center;color:var(--mut);font-size:14px}
+</style>
+</head>
+<body>
+<nav>
+<a href="#result">Results</a><a href="#scenario">Scenario</a><a href="#architecture">Architecture</a><a href="#change">Source change</a><a href="#migration">Migration</a><a href="#cicd">CI/CD</a><a href="#repo">Repo map</a><a href="#lessons">Lessons</a>
+</nav>
+<main>
+<section id="result">
+<h1>A Data Vault warehouse that survives a source change and a platform move</h1>
+<p class="lead">Data Vault 2.0 with dbt Core for a fictional energy utility. It runs on Snowflake and on Databricks from one dbt project, with Airflow for orchestration and GitHub Actions for CI/CD. All data is synthetic.</p>
+<div class="grid">
+<div class="card"><div class="big">4421 invoices</div>Marts equal the generator ground truth on both platforms.<div class="src"><code>docs/migration.md</code>, table "Result"</div></div>
+<div class="card"><div class="big">461626.22 net</div>Net total, the same value on <code>snowflake_dev</code> and <code>databricks_dev</code>.<div class="src"><code>docs/migration.md</code>, <code>dbt/analyses/mart_vs_expected_totals.sql</code></div></div>
+<div class="card"><div class="big">0 differences</div>Reconciliation compares 35 tables, Snowflake against Databricks.<div class="src"><code>docs/cutover.md</code>, evidence in <code>data/recon/</code></div></div>
+<div class="card"><div class="big">0 consumer changes</div>Marts keep columns and grain when Billing and CRM v1 are replaced by v2.<div class="src"><code>docs/source-change.md</code>, <code>dbt/analyses/mart_columns.sql</code></div></div>
+</div>
+<p>See also: <a href="https://aglivin.github.io/vault-lakehouse-migration/">dbt docs and lineage</a> and <a href="https://github.com/aglivin/vault-lakehouse-migration">the repository</a>.</p>
+</section>
+
+<section id="scenario">
+<h2>Business scenario</h2>
+<p>A utility sells electricity and gas to residential customers. Two operational systems feed the warehouse: <b>Billing</b> (contracts, meter readings, invoices, payments, tariffs, tax lines) and <b>CRM</b> (customers, addresses, campaigns, call-centre contacts).</p>
+<div class="two">
+<div class="card"><h3>1. Source change</h3>Billing v1 and CRM v1 are replaced by v2 with new keys and renamed columns. The cut-over date is 2026-01-04 (dbt var <code>cutover_date</code>). History must not break and consumers must see no change.</div>
+<div class="card"><h3>2. Platform move</h3>The warehouse moves from Snowflake to Databricks. dbt and Airflow stay. The same models must give the same numbers on both platforms.</div>
+</div>
+<p>Consumers are four data products: <b>billing</b> (revenue by tariff and month, open receivables), <b>sales</b> (new contracts, churn), <b>tax</b> (VAT and energy-tax lines per invoice) and <b>call centre</b> (contacts per customer, first-contact resolution).</p>
+</section>
+
+<section id="architecture">
+<h2>Architecture</h2>
+<p>Each layer has one job. Data moves down one layer at a time, and every layer is tested.</p>
+<svg viewBox="0 0 900 520" role="img" aria-label="Layered architecture from landing files to data products, with orchestration and CI/CD">
+<defs><marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="ar" d="M0 0L8 4L0 8z"/></marker></defs>
+<rect x="10" y="10" width="640" height="52" rx="8" style="fill:var(--l3)"/><text class="t" x="24" y="32">Landing files</text><text class="m" x="24" y="50">CSV from Billing v1/v2, CRM v1/v2 and key_map, one folder per load date</text>
+<rect x="10" y="80" width="640" height="52" rx="8" style="fill:var(--l3)"/><text class="t" x="24" y="102">Raw</text><text class="m" x="24" y="120">copy_into_raw: stage on Snowflake, Unity Catalog volume on Databricks</text>
+<rect x="10" y="150" width="640" height="52" rx="8" style="fill:var(--l1)"/><text class="t" x="24" y="172">Staging (views)</text><text class="m" x="24" y="190">rename, cast, hash keys, hashdiffs, load metadata (automate_dv.stage)</text>
+<rect x="10" y="220" width="640" height="66" rx="8" style="fill:var(--l1)"/><text class="t" x="24" y="242">Raw vault</text><text class="m" x="24" y="260">hubs, links, satellites, multi-active, effectivity and status satellites</text><text class="m" x="24" y="276">same-as links (v1 key to v2 key)</text>
+<rect x="10" y="304" width="640" height="66" rx="8" style="fill:var(--l2)"/><text class="t" x="24" y="326">Business vault</text><text class="m" x="24" y="344">master keys (bv_*_master), PIT table, bridge table</text><text class="m" x="24" y="360">one key per business entity across v1 and v2</text>
+<rect x="10" y="388" width="640" height="52" rx="8" style="fill:var(--l4)"/><text class="t" x="24" y="410">Marts: star schema</text><text class="m" x="24" y="428">fct_invoice_line, fct_payment, fct_contact, dim_customer (SCD2), dim_contract, dim_tariff, dim_date</text>
+<rect x="10" y="458" width="640" height="52" rx="8" style="fill:var(--l5)"/><text class="t" x="24" y="480">Data products with model contracts</text><text class="m" x="24" y="498">billing, sales, tax, callcentre, with exposures in dbt docs</text>
+<path d="M330 62V78" marker-end="url(#a)"/><path d="M330 132V148" marker-end="url(#a)"/><path d="M330 202V218" marker-end="url(#a)"/><path d="M330 286V302" marker-end="url(#a)"/><path d="M330 370V386" marker-end="url(#a)"/><path d="M330 440V456" marker-end="url(#a)"/>
+<rect x="680" y="10" width="210" height="150" rx="8" style="fill:var(--card)"/><text class="t" x="694" y="32">Two targets</text><text class="m" x="694" y="52">snowflake_dev</text><text class="m" x="694" y="68">databricks_dev (Delta, UC)</text><text class="m" x="694" y="92">Same models, same macros.</text><text class="m" x="694" y="108">adapter.dispatch holds</text><text class="m" x="694" y="124">the dialect differences.</text><text class="m" x="694" y="146">recon__table_stats compares.</text>
+<rect x="680" y="176" width="210" height="130" rx="8" style="fill:var(--card)"/><text class="t" x="694" y="198">Orchestration</text><text class="m" x="694" y="218">Airflow (Astro CLI)</text><text class="m" x="694" y="234">Cosmos: one task per model</text><text class="m" x="694" y="250">DAG vdwh_transform</text><text class="m" x="694" y="266">one run per logical date</text><text class="m" x="694" y="288">covers staging to marts</text>
+<rect x="680" y="322" width="210" height="130" rx="8" style="fill:var(--card)"/><text class="t" x="694" y="344">CI/CD</text><text class="m" x="694" y="364">GitHub Actions</text><text class="m" x="694" y="380">PR: lint, parse, slim build</text><text class="m" x="694" y="396">main: deploy, publish docs</text><text class="m" x="694" y="412">attribution check</text>
+<path d="M650 85H678" marker-end="url(#a)" style="stroke-dasharray:4 3"/><path d="M650 240H678" marker-end="url(#a)" style="stroke-dasharray:4 3"/>
+</svg>
+<p>Existing diagrams, rendered by GitHub: <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/architecture-platform.drawio.svg">platform</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/architecture-vault-model.drawio.svg">vault model</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/architecture-change-migration.drawio.svg">source change and migration</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/architecture.mmd">Mermaid source</a>.</p>
+</section>
+
+<section id="change">
+<h2>Source-system change without breaking consumers</h2>
+<ul>
+<li><b>Raw and staging:</b> v2 gets new tables and new staging models. v1 keeps its history and gets no new rows.</li>
+<li><b>Hubs and links:</b> v1 and v2 keys live in the same hub. Key formats never collide, so no key is rewritten.</li>
+<li><b>Same-as links:</b> one row per <code>key_map</code> row links the v1 key and the v2 key of one business entity.</li>
+<li><b>Satellites:</b> v2 attributes get new <code>*_v2</code> satellites. v1 satellites are closed, not dropped.</li>
+<li><b>Business vault:</b> <code>bv_*_master</code> gives one master key per entity. A v2 key with a same-as row takes the v1 key. Every other key is its own master.</li>
+<li><b>Marts:</b> they read both versions through master keys and map v2 columns to the same mart columns. A re-issued v2 invoice replaces its v1 invoice and is not counted twice.</li>
+</ul>
+<p>Proof: <code>mart_vs_expected_totals.sql</code> shows mart totals equal expected totals after each load date, 2026-01-01 to 2026-01-05. Tests <code>assert_v1_satellites_closed_after_cutover</code> and <code>assert_unmapped_keys_survive</code> guard the rules. Details: <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/source-change.md">docs/source-change.md</a>.</p>
+</section>
+
+<section id="migration">
+<h2>Migration: Snowflake to Databricks</h2>
+<p>One dbt project builds on both targets. Models contain no <code>if target.type</code>. Dialect gaps live in macros that use <code>adapter.dispatch</code>.</p>
+<div class="tw"><table>
+<tr><th>Macro</th><th>Gap it closes</th></tr>
+<tr><td><code>month_trunc</code></td><td><code>date_trunc</code> returns DATE on Snowflake and TIMESTAMP on Databricks. The macro keeps <code>invoice_month</code> a DATE on both.</td></tr>
+<tr><td><code>hex_key</code></td><td>Hash keys are BINARY on Snowflake and hex STRING on Databricks. The macro compares both as upper-case hex.</td></tr>
+<tr><td><code>copy_into_raw</code></td><td>Different <code>copy into</code> syntax: stage and column position on Snowflake, volume and header names on Databricks.</td></tr>
+</table></div>
+<h3>Reconciliation and cut-over</h3>
+<ul>
+<li><code>recon__table_stats</code> returns one row per table: row count, distinct keys, key min and max, key checksum, hashdiff checksum, measure sums.</li>
+<li><code>scripts/compare_recon.py</code> compares the two JSON outputs and exits 1 on any differing cell. Evidence is committed in <code>data/recon/</code>.</li>
+<li>Plan: parallel run, daily recon, go when recon is clean for N consecutive load dates, switch consumers group by group, then switch the Airflow loader.</li>
+<li>Rollback: Snowflake loads keep running through a 14-day window, so consumers switch back with no replay.</li>
+</ul>
+<p>Details: <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/migration.md">migration.md</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/cutover.md">cutover.md</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/performance.md">performance.md</a>.</p>
+</section>
+
+<section id="cicd">
+<h2>CI/CD and orchestration</h2>
+<div class="two">
+<div class="card"><h3>Pull request</h3><ul><li><code>sqlfluff lint</code>, <code>dbt parse</code>, <code>pytest</code>.</li><li>Slim CI: <code>state:modified+</code> with <code>--defer</code> against the prod <code>manifest.json</code> published on GitHub Pages.</li><li>The job waits while a prod deploy runs, so the manifest is current.</li><li>Builds into a schema per PR and drops it at the end.</li><li>Job <code>attribution</code> fails the build on AI co-author trailers.</li></ul></div>
+<div class="card"><h3>Main</h3><ul><li>Deploy builds the prod target one load date at a time (<code>scripts/build_by_load_date.sh</code>).</li><li>Runs in environment <code>prod</code> with secrets from GitHub, none in YAML.</li><li><code>dbt docs generate</code>, then publish to GitHub Pages together with this page and the manifest.</li></ul></div>
+</div>
+<h3>Airflow</h3>
+<p>DAG <code>vdwh_transform</code> runs once per logical date (<code>@daily</code>, <code>max_active_runs=1</code>, 2 retries). Steps: <code>dbt_deps</code>, <code>dbt_seed</code>, <code>load_raw</code>, then one Cosmos task group per layer (staging, raw vault, business vault, marts), then cross-layer tests. The load date comes from the Airflow <code>ds</code>. The target comes from env var <code>DBT_TARGET</code>, so the DAG logic does not change per platform.</p>
+</section>
+
+<section id="repo">
+<h2>Repo map</h2>
+<div class="tw"><table>
+<tr><th>Folder</th><th>Purpose</th></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/data_generator">data_generator/</a></td><td>Synthetic sources: Billing and CRM v1 and v2, key map, daily loads (fixed seed).</td></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/dbt/models">dbt/models/</a></td><td>staging, raw_vault (hubs, links, sats), business_vault, marts, recon, perf.</td></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/dbt/macros">dbt/macros/</a></td><td>Dispatch macros (compat, raw loading), load-date rule, CI schema cleanup.</td></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/dbt/tests">dbt/tests/</a></td><td>Singular tests: expected totals, cut-over rules, payment dedup.</td></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/dbt/analyses">dbt/analyses/</a></td><td>Queries behind every reported number.</td></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/airflow">airflow/</a></td><td>Astro project and the <code>vdwh_transform</code> DAG with Cosmos.</td></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/.github/workflows">.github/workflows/</a></td><td>CI, deploy and attribution check.</td></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/scripts">scripts/</a></td><td>Landing upload, build by load date, rerun check, recon compare.</td></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/data/recon">data/recon/</a></td><td>Committed reconciliation output for both targets.</td></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/docs">docs/</a></td><td>Diagrams and write-ups: source change, migration, cut-over, loading, performance.</td></tr>
+</table></div>
+</section>
+
+<section id="lessons">
+<h2>Lessons learned</h2>
+<ul>
+<li><b>Re-running a past load date must be a no-op.</b> automate_dv compares only with the newest row per key, so a replay inserted rows again. Now no table inserts a key with the same or a later load datetime (<a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/loading.md">loading.md</a>).</li>
+<li><b>Slim CI must wait for the prod deploy.</b> It defers to the manifest on Pages. During a deploy that manifest is stale, so the job waits.</li>
+<li><b>Payments need dedup per source.</b> The v2 feed repeats v1 payments of migrated invoices. <code>fct_payment</code> numbers rows inside each source and pairs v1 with v2, so two equal instalments stay two payments.</li>
+<li><b>Identifier case differs.</b> Snowflake folds to upper case, Databricks to lower case. Staging columns stay upper case, and <code>information_schema</code> queries compare with <code>upper()</code>.</li>
+<li><b>Hash types differ, hashing does not.</b> The fix is to compare keys as hex, not to change the hash.</li>
+</ul>
+</section>
+</main>
+<footer>Synthetic data only. <a href="https://aglivin.github.io/vault-lakehouse-migration/">dbt docs</a> · <a href="https://github.com/aglivin/vault-lakehouse-migration">GitHub</a></footer>
+</body>
+</html>

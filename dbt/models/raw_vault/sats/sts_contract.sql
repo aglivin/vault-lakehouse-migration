@@ -66,7 +66,7 @@ staged as (
             from {{ this }} as existing
             where
                 existing.contract_hk = staged.contract_hk
-                and existing.load_datetime = staged.load_datetime
+                and existing.load_datetime >= staged.load_datetime
         )
     )
 {% else %}

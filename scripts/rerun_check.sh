@@ -3,10 +3,10 @@ set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
 last=$("$here/build_by_load_date.sh" --last-date)
-rerun_dates=(2026-01-04 "$last" 2026-01-02)
+read -ra rerun_dates <<< "${RERUN_DATES:-2026-01-04 $last 2026-01-02}"
 
 vault_row_counts() {
-  uv run dbt show "$@" --select vault_row_counts --limit 100 --vars "{load_date: '$last'}" | grep '^|'
+  uv run dbt show "$@" --select vault_row_counts --limit 100 --vars "{load_date: '$last'}" | grep '^|' | sort
 }
 
 "$here/build_by_load_date.sh" "$@"

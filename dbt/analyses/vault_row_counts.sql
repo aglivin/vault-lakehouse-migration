@@ -4,7 +4,7 @@
         'link_customer_contract', 'link_contract_meter', 'link_contract_invoice', 'link_invoice_tariff',
         'sal_customer', 'sal_contract', 'sal_invoice', 'sal_tariff', 'sal_meter'
     ],
-    'nh_link': ['nhl_payment_billing_v1', 'nhl_payment_billing_v2'],
+    'nh_link': ['nhl_payment_billing_v1', 'nhl_payment_billing_v2', 'nhl_contact_crm_v1', 'nhl_contact_crm_v2'],
     'sat': [
         'sat_customer_details_crm_v1', 'sat_customer_details_crm_v2',
         'sat_contract_details_billing_v1', 'sat_contract_details_billing_v2',

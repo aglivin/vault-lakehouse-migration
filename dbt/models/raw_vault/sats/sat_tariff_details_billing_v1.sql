@@ -1,4 +1,4 @@
-{{ config(materialized='incremental') }}
+{{ config(materialized='incremental', tags=['tariff']) }}
 
 {{ automate_dv.sat(
     src_pk='TARIFF_HK',

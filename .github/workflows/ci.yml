@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 env:
-  PROD_MANIFEST_URL: https://aglivin.github.io/vault-lakehouse-migration/manifest.json
+  PROD_MANIFEST_URL: https://raw.githubusercontent.com/aglivin/vault-lakehouse-migration/test/13-slim-ci-evidence/ci-test/manifest.json
   LOAD_DATES: 2026-01-01 2026-01-02 2026-01-03 2026-01-04 2026-01-05
 
 jobs:

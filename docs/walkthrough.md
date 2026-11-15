@@ -1,6 +1,6 @@
 # Walkthrough: 5 minutes
 
-A script for a live demo. Six steps, about 5 minutes. Each step says what to open and what to say.
+A short guided tour. Six steps, about 5 minutes. Each step says what to open and what to say.
 
 ## 1. README and scenario (30 s)
 

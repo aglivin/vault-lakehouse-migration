@@ -3,7 +3,8 @@
     'sat_contract_details_billing_v1',
     'sat_invoice_details_billing_v1',
     'sat_invoice_line_billing_v1',
-    'sat_tariff_details_billing_v1'
+    'sat_tariff_details_billing_v1',
+    'sat_customer_phone_ma'
 ] %}
 
 {% for satellite in v1_satellites %}

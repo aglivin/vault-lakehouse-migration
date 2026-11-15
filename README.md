@@ -18,15 +18,23 @@ One dbt project loads two warehouse lanes, Snowflake and Databricks. Airflow run
 
 ![Platform architecture: generator, Snowflake and Databricks lanes, Airflow DAGs, GitHub Actions](docs/architecture-platform.drawio.svg)
 
-Other diagrams: [vault model](docs/architecture-vault-model.drawio.svg), [source change and migration timeline](docs/architecture-change-migration.drawio.svg). Editable source: [`docs/architecture.drawio`](docs/architecture.drawio).
+Editable source of all diagrams: [`docs/architecture.drawio`](docs/architecture.drawio).
 
 ## How data flows
 
 Each layer is a folder of dbt models. The example models are real.
 
 ```mermaid
-flowchart LR
-    LAND["Landing<br/>files per load date"] --> RAWT["raw<br/>raw.crm_v1__customers"] --> STG["staging<br/>stg_crm_v1__customers"] --> RV["raw vault<br/>hub_customer<br/>sat_customer_details_crm_v1"] --> BV["business vault<br/>bv_customer_master<br/>pit_customer"] --> MT["marts<br/>fct_invoice_line<br/>billing__revenue_by_tariff_month"] --> CONS["Consumers<br/>billing, sales, tax, call centre"]
+flowchart TB
+    subgraph R1[" "]
+        direction LR
+        LAND["Landing<br/>CSV files per load date"] --> RAWT["raw<br/>raw.crm_v1__customers"] --> STG["staging<br/>stg_crm_v1__customers"] --> RV["raw vault<br/>hub_customer<br/>sat_customer_details_crm_v1"]
+    end
+    subgraph R2[" "]
+        direction LR
+        BV["business vault<br/>bv_customer_master<br/>pit_customer"] --> MT["marts<br/>fct_invoice_line<br/>billing__revenue_by_tariff_month"] --> CONS["Consumers<br/>billing, sales, tax, call centre"]
+    end
+    RV --> BV
     classDef raw fill:#f5e6d3,stroke:#92400e,color:#111827
     classDef stg fill:#ffffff,stroke:#92400e,color:#111827
     classDef hub fill:#dbeafe,stroke:#2563eb,color:#111827
@@ -39,6 +47,8 @@ flowchart LR
     class BV bv
     class MT mart
     class CONS user
+    style R1 fill:#ffffff,stroke:#ffffff
+    style R2 fill:#ffffff,stroke:#ffffff
     linkStyle default stroke:#6b7280,stroke-width:2px
 ```
 
@@ -46,71 +56,7 @@ flowchart LR
 
 Hubs hold business keys. Links hold relationships. Satellites hold history. Names are the real dbt models.
 
-```mermaid
-flowchart LR
-    subgraph HUBS["Hubs"]
-        hub_customer
-        hub_contract
-        hub_meter
-        hub_invoice
-        hub_tariff
-    end
-    subgraph LINKS["Links"]
-        link_customer_contract
-        link_contract_meter
-        link_contract_invoice
-        link_invoice_tariff
-    end
-    link_customer_contract --- hub_customer
-    link_customer_contract --- hub_contract
-    link_contract_meter --- hub_contract
-    link_contract_meter --- hub_meter
-    link_contract_invoice --- hub_contract
-    link_contract_invoice --- hub_invoice
-    link_invoice_tariff --- hub_invoice
-    link_invoice_tariff --- hub_tariff
-    subgraph SAT["Satellites"]
-        sat_customer_details["sat_customer_details_crm_v1, _v2"]
-        sat_customer_phone_ma["sat_customer_phone_ma (multi-active)"]
-        sat_contract_details["sat_contract_details_billing_v1, _v2"]
-        sts_contract["sts_contract (status tracking)"]
-        sat_invoice_details["sat_invoice_details_billing_v1, _v2"]
-        sat_invoice_line["sat_invoice_line_billing_v1, _v2"]
-        sat_tariff_details["sat_tariff_details_billing_v1, _v2"]
-        eff_sat_customer_contract["eff_sat_customer_contract (effectivity)"]
-    end
-    hub_customer --- sat_customer_details
-    hub_customer --- sat_customer_phone_ma
-    hub_contract --- sat_contract_details
-    hub_contract --- sts_contract
-    hub_invoice --- sat_invoice_details
-    hub_invoice --- sat_invoice_line
-    hub_tariff --- sat_tariff_details
-    link_customer_contract --- eff_sat_customer_contract
-    subgraph SAL["Same-as links, two keys into the same hub"]
-        sal_customer
-        sal_contract
-        sal_meter
-        sal_invoice
-        sal_tariff
-    end
-    sal_customer -.-> hub_customer
-    sal_contract -.-> hub_contract
-    sal_meter -.-> hub_meter
-    sal_invoice -.-> hub_invoice
-    sal_tariff -.-> hub_tariff
-    classDef hub fill:#dbeafe,stroke:#2563eb,color:#111827
-    classDef link fill:#dcfce7,stroke:#16a34a,color:#111827
-    classDef sat fill:#fef9c3,stroke:#ca8a04,color:#111827
-    class hub_customer,hub_contract,hub_meter,hub_invoice,hub_tariff hub
-    class link_customer_contract,link_contract_meter,link_contract_invoice,link_invoice_tariff,sal_customer,sal_contract,sal_meter,sal_invoice,sal_tariff link
-    class sat_customer_details,sat_customer_phone_ma,sat_contract_details,sts_contract,sat_invoice_details,sat_invoice_line,sat_tariff_details,eff_sat_customer_contract sat
-    style HUBS fill:#eff6ff,stroke:#2563eb,color:#111827
-    style LINKS fill:#f0fdf4,stroke:#16a34a,color:#111827
-    style SAT fill:#fefce8,stroke:#ca8a04,color:#111827
-    style SAL fill:#f0fdf4,stroke:#16a34a,color:#111827
-    linkStyle default stroke:#6b7280,stroke-width:2px
-```
+![Vault model: hubs, links, satellites and business vault](docs/architecture-vault-model.drawio.svg)
 
 Not drawn: the non-historised links `nhl_contact_crm_v1`, `nhl_contact_crm_v2`, `nhl_payment_billing_v1` and `nhl_payment_billing_v2`.
 
@@ -118,6 +64,8 @@ Not drawn: the non-historised links `nhl_contact_crm_v1`, `nhl_contact_crm_v2`, 
 <summary><strong>Source change v1 to v2</strong></summary>
 
 From 2026-01-04 (dbt var `cutover_date`) the data comes from Billing v2 and CRM v2. Details and numbers: [`docs/source-change.md`](docs/source-change.md).
+
+![Source change and migration timeline](docs/architecture-change-migration.drawio.svg)
 
 ```mermaid
 flowchart LR

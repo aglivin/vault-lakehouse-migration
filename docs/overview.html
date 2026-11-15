@@ -86,7 +86,7 @@ footer{border-top:1px solid var(--line);padding:16px;text-align:center;color:var
 <rect x="10" y="458" width="640" height="52" rx="8" style="fill:var(--l5)"/><text class="t" x="24" y="480">Data products with model contracts</text><text class="m" x="24" y="498">billing, sales, tax, callcentre, with exposures in dbt docs</text>
 <path d="M330 62V78" marker-end="url(#a)"/><path d="M330 132V148" marker-end="url(#a)"/><path d="M330 202V218" marker-end="url(#a)"/><path d="M330 286V302" marker-end="url(#a)"/><path d="M330 370V386" marker-end="url(#a)"/><path d="M330 440V456" marker-end="url(#a)"/>
 <rect x="680" y="10" width="210" height="150" rx="8" style="fill:var(--card)"/><text class="t" x="694" y="32">Two targets</text><text class="m" x="694" y="52">snowflake_dev</text><text class="m" x="694" y="68">databricks_dev (Delta, UC)</text><text class="m" x="694" y="92">Same models, same macros.</text><text class="m" x="694" y="108">adapter.dispatch holds</text><text class="m" x="694" y="124">the dialect differences.</text><text class="m" x="694" y="146">recon__table_stats compares.</text>
-<rect x="680" y="176" width="210" height="130" rx="8" style="fill:var(--card)"/><text class="t" x="694" y="198">Orchestration</text><text class="m" x="694" y="218">Airflow (Astro CLI)</text><text class="m" x="694" y="234">Cosmos: one task per model</text><text class="m" x="694" y="250">DAG vdwh_transform</text><text class="m" x="694" y="266">one run per logical date</text><text class="m" x="694" y="288">covers staging to marts</text>
+<rect x="680" y="176" width="210" height="130" rx="8" style="fill:var(--card)"/><text class="t" x="694" y="198">Orchestration</text><text class="m" x="694" y="218">Airflow (Astro CLI)</text><text class="m" x="694" y="234">Cosmos: one task per model</text><text class="m" x="694" y="250">DAGs vdwh_ingest and</text><text class="m" x="694" y="266">vdwh_transform, linked by</text><text class="m" x="694" y="288">asset vdwh/raw_landed</text>
 <rect x="680" y="322" width="210" height="130" rx="8" style="fill:var(--card)"/><text class="t" x="694" y="344">CI/CD</text><text class="m" x="694" y="364">GitHub Actions</text><text class="m" x="694" y="380">PR: lint, parse, slim build</text><text class="m" x="694" y="396">main: deploy, publish docs</text><text class="m" x="694" y="412">attribution check</text>
 <path d="M650 85H678" marker-end="url(#a)" style="stroke-dasharray:4 3"/><path d="M650 240H678" marker-end="url(#a)" style="stroke-dasharray:4 3"/>
 </svg>
@@ -122,7 +122,7 @@ footer{border-top:1px solid var(--line);padding:16px;text-align:center;color:var
 <li>Plan: parallel run, daily recon, go when recon is clean for N consecutive load dates, switch consumers group by group, then switch the Airflow loader.</li>
 <li>Rollback: Snowflake loads keep running through a 14-day window, so consumers switch back with no replay.</li>
 </ul>
-<p>Details: <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/migration.md">migration.md</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/cutover.md">cutover.md</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/performance.md">performance.md</a>.</p>
+<p>Details: <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/migration.md">migration.md</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/cutover.md">cutover.md</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/performance.md">performance.md</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/airflow.md">airflow.md</a>.</p>
 </section>
 
 <section id="cicd">
@@ -132,8 +132,14 @@ footer{border-top:1px solid var(--line);padding:16px;text-align:center;color:var
 <div class="card"><h3>Main</h3><ul><li>Deploy builds the prod target one load date at a time (<code>scripts/build_by_load_date.sh</code>).</li><li>Runs in environment <code>prod</code> with secrets from GitHub, none in YAML.</li><li><code>dbt docs generate</code>, then publish to GitHub Pages together with this page and the manifest.</li></ul></div>
 </div>
 <h3>Airflow</h3>
-<p>DAG <code>vdwh_transform</code> runs once per logical date (<code>@daily</code>, <code>max_active_runs=1</code>, 2 retries). Steps: <code>dbt_deps</code>, <code>dbt_seed</code>, <code>load_raw</code>, then one Cosmos task group per layer (staging, raw vault, business vault, marts), then cross-layer tests. The load date comes from the Airflow <code>ds</code>. The target comes from env var <code>DBT_TARGET</code>, so the DAG logic does not change per platform.</p>
-</section>
+<p>Two DAGs, linked by the asset <code>vdwh/raw_landed</code>.</p>
+<ul>
+<li><code>vdwh_ingest</code> (<code>@daily</code>, <code>max_active_runs=1</code>): <code>load_raw</code>, then sensor <code>wait_for_idle_transform</code>, then <code>publish_raw_landed</code>. The last task emits the asset event with the extra <code>load_date</code>.</li>
+<li><code>vdwh_transform</code> (scheduled on the asset): <code>resolve_load_date</code> reads the load date from the triggering asset event, then <code>dbt_seed</code>, one Cosmos task group per layer (staging, raw_vault, business_vault, marts), then <code>cross_layer_tests</code>.</li>
+<li>The sensor holds ingest until no transform run is queued or running, so each load date gets its own transform run, also in a backfill: <code>backfill create --dag-id vdwh_ingest</code>.</li>
+<li>Alerts: <code>on_failure_callback</code> on every task, 2 retries, and a Deadline Alert per DAG (75 minutes for ingest, 60 for transform).</li>
+<li>The target comes from env var <code>DBT_TARGET</code>, so the DAG files do not change per platform.</li>
+</ul></section>
 
 <section id="repo">
 <h2>Repo map</h2>
@@ -144,7 +150,7 @@ footer{border-top:1px solid var(--line);padding:16px;text-align:center;color:var
 <tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/dbt/macros">dbt/macros/</a></td><td>Dispatch macros (compat, raw loading), load-date rule, CI schema cleanup.</td></tr>
 <tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/dbt/tests">dbt/tests/</a></td><td>Singular tests: expected totals, cut-over rules, payment dedup.</td></tr>
 <tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/dbt/analyses">dbt/analyses/</a></td><td>Queries behind every reported number.</td></tr>
-<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/airflow">airflow/</a></td><td>Astro project and the <code>vdwh_transform</code> DAG with Cosmos.</td></tr>
+<tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/airflow">airflow/</a></td><td>Astro project, DAGs <code>vdwh_ingest</code> and <code>vdwh_transform</code> (Cosmos), alert helpers.</td></tr>
 <tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/.github/workflows">.github/workflows/</a></td><td>CI, deploy and attribution check.</td></tr>
 <tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/scripts">scripts/</a></td><td>Landing upload, build by load date, rerun check, recon compare.</td></tr>
 <tr><td><a href="https://github.com/aglivin/vault-lakehouse-migration/tree/main/data/recon">data/recon/</a></td><td>Committed reconciliation output for both targets.</td></tr>

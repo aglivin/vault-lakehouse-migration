@@ -2,12 +2,12 @@ load_date,metric,value
 2026-01-01,customer_count,2000
 2026-01-01,active_contracts,2000
 2026-01-01,invoice_count,2000
-2026-01-01,invoiced_net_total,250821.81
+2026-01-01,invoiced_net_total,209018.23
 2026-01-02,customer_count,2040
 2026-01-02,active_contracts,1969
 2026-01-02,invoice_count,2631
-2026-01-02,invoiced_net_total,330405.57
+2026-01-02,invoiced_net_total,275337.96
 2026-01-03,customer_count,2081
-2026-01-03,active_contracts,1940
-2026-01-03,invoice_count,3255
-2026-01-03,invoiced_net_total,409522.10
+2026-01-03,active_contracts,1942
+2026-01-03,invoice_count,3256
+2026-01-03,invoiced_net_total,343273.21

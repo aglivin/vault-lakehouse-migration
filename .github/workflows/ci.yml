@@ -57,8 +57,8 @@ jobs:
       - name: Fetch prod manifest
         id: state
         run: |
-          mkdir -p prod-manifest
-          if curl -fsSL "$PROD_MANIFEST_URL" -o prod-manifest/manifest.json; then
+          mkdir -p "$RUNNER_TEMP/prod-manifest"
+          if curl -fsSL "$PROD_MANIFEST_URL" -o "$RUNNER_TEMP/prod-manifest/manifest.json"; then
             echo "mode=slim" >> "$GITHUB_OUTPUT"
             echo "prod manifest found, building state:modified+ with defer"
           else
@@ -72,7 +72,7 @@ jobs:
           set -euo pipefail
           selection=()
           if [ "$MODE" = slim ]; then
-            selection=(--select "state:modified+" "1+state:modified+,config.materialized:view" --defer --state prod-manifest)
+            selection=(--select "state:modified+" "1+state:modified+,config.materialized:view" --defer --state "$RUNNER_TEMP/prod-manifest")
           fi
           read -ra dates <<< "$LOAD_DATES"
           last=$(( ${#dates[@]} - 1 ))

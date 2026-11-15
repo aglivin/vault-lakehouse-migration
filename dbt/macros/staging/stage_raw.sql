@@ -1,6 +1,7 @@
-{% macro stage_raw(system, entity, hashed_columns) %}
+{% macro stage_raw(system, entity, hashed_columns, extra_derived_columns={}) %}
     {% set source_model = {system: system ~ '__' ~ entity} %}
     {% set derived_columns = {'LOAD_DATETIME': '_load_date', 'RECORD_SOURCE': '_record_source'} %}
+    {% do derived_columns.update(extra_derived_columns) %}
     with staged as (
         {{ automate_dv.stage(
             include_source_columns=true,

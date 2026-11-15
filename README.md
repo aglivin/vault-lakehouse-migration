@@ -82,10 +82,10 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 - [x] Staging models with hash keys and hashdiffs (`automate_dv.stage`)
 - [x] Hubs: customer, contract, meter, invoice, tariff
 - [x] Links: customer–contract, contract–meter, contract–invoice, invoice–tariff
-- [ ] Satellites with history; one multi-active satellite (customer phone numbers)
-- [ ] Effectivity satellite for customer–contract
-- [ ] Record-tracking satellite for deletes
-- [ ] Incremental loads tested over 3 load dates
+- [x] Satellites with history; one multi-active satellite (customer phone numbers)
+- [x] Effectivity satellite for customer–contract
+- [x] Status-tracking satellite (CDC deletes)
+- [x] Incremental loads tested over 3 load dates
 - [ ] dbt tests: unique and not-null keys, relationships, freshness, row-count reconciliation to source
 
 ### Phase 3 — Source system change (v1 → v2)

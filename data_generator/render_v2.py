@@ -64,7 +64,12 @@ class Plan:
         self.agreement = numbered("AGR-", 7, contracts)
         self.product = {code: f"PRD-{code}" for code in first_seen(world.tariffs, "tariff_code")}
         self.meter_point = numbered("MP-", 7, first_seen(world.meters, "meter_no"))
-        invoices = [no for no, r in first_seen(world.invoices, "invoice_no").items() if r["contract_no"] in self.agreement]
+        gone = {r["contract_no"] for r in live} - {r["contract_no"] for r in latest_state(world.contracts, lambda r: r["contract_no"], CUTOVER_DATE)}
+        invoices = [
+            no
+            for no, r in first_seen(world.invoices, "invoice_no").items()
+            if r["contract_no"] in self.agreement and r["contract_no"] not in gone
+        ]
         self.document = numbered("DOC-", 9, invoices)
         self.settlement = numbered("STL-", 9, (r["payment_id"] for r in world.payments if r["invoice_no"] in self.document))
         self.interaction = numbered("IA-", 8, (r["contact_id"] for r in world.contacts))
@@ -75,12 +80,11 @@ class Plan:
         return set(rng.sample(closed, size))
 
     def history(self, table: list[dict], day, key=None) -> list[dict]:
-        today = [r for r in table if r["_load_date"] == day]
         if day != CUTOVER_DATE:
-            return today
+            return [r for r in table if r["_load_date"] == day]
         if key is None:
             return [r for r in table if r["_load_date"] <= day]
-        return latest_state(table, key, self.before) + today
+        return latest_state(table, key, day)
 
     def key_map(self, system: str) -> list[dict]:
         w = self.world

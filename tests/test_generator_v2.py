@@ -103,7 +103,6 @@ def test_non_migrated_contracts_are_about_one_percent_and_have_no_v2_key(out):
     skipped = set(live) - set(contract_map)
     assert 0 < len(skipped) <= max(2, round(len(live) * 0.02))
     assert {live[n]["status"] for n in skipped} == {"terminated"}
-    assert {r["agreement_id"] for r in read(out, "agreements")} >= set(contract_map.values())
 
 
 def test_new_customers_in_v2_are_about_one_percent_and_have_no_v1_key(out):
@@ -159,3 +158,23 @@ def test_committed_expected_totals_include_v2_days(tmp_path):
     assert target.read_bytes() == (ROOT / "dbt/seeds/expected_totals.csv").read_bytes()
     assert {r["load_date"] for r in csv.DictReader(target.open())} == {d.isoformat() for d in LOAD_DATES}
 
+
+
+@pytest.mark.parametrize(
+    "entity, columns",
+    [
+        ("accounts", ["account_uuid"]),
+        ("account_phones", ["account_uuid", "phone_kind"]),
+        ("agreements", ["agreement_id"]),
+        ("products", ["product_code"]),
+        ("meter_points", ["meter_point_id"]),
+        ("documents", ["document_id"]),
+        ("document_lines", ["document_id", "position"]),
+    ],
+)
+def test_initial_load_has_one_insert_row_per_key(out, entity, columns):
+    rows = read(out, entity, [CUTOVER])
+    keys = [tuple(r[c] for c in columns) for r in rows]
+    assert len(keys) == len(set(keys))
+    if "op" in rows[0]:
+        assert {r["op"] for r in rows} == {"I"}

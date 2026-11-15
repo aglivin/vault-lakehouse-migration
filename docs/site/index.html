@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project map - vault-lakehouse-migration</title>
+<meta name="description" content="Interactive map of a Data Vault 2.0 warehouse: dbt on Snowflake and Databricks, Airflow 3 with Cosmos, GitHub Actions.">
+<style>
+:root{--bg:#f8fafc;--fg:#0f172a;--mut:#475569;--card:#ffffff;--line:#d9e0ea;--acc:#2563eb;--edge:#94a3b8;--hot:#e11d48;--shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.06);
+--raw-f:#f5e6d3;--raw-s:#92400e;--stg-f:#f1f5f9;--stg-s:#64748b;--hub-f:#dbeafe;--hub-s:#2563eb;--bv-f:#e5e7eb;--bv-s:#4b5563;--mart-f:#fde68a;--mart-s:#b45309;--sf-f:#e0f2fe;--sf-s:#0284c7;--db-f:#fee2e2;--db-s:#dc2626;--af-f:#e0e7ff;--af-s:#4f46e5;--gh-f:#f3f4f6;--gh-s:#111827;--rec-f:#dcfce7;--rec-s:#16a34a;--con-f:#fef9c3;--con-s:#ca8a04;--tx:#0f172a}
+@media(prefers-color-scheme:dark){:root{--bg:#0b1020;--fg:#e7ecf5;--mut:#a3b0c4;--card:#131a2e;--line:#273250;--acc:#7aa7ff;--edge:#5d6b86;--hot:#fb7185;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+--raw-f:#3b2a1a;--raw-s:#e0a46a;--stg-f:#1e293b;--stg-s:#94a3b8;--hub-f:#172a52;--hub-s:#7aa7ff;--bv-f:#2a3040;--bv-s:#a3adc0;--mart-f:#4a3a0c;--mart-s:#f5b942;--sf-f:#0c3350;--sf-s:#38bdf8;--db-f:#4a1d22;--db-s:#f87171;--af-f:#25285c;--af-s:#a5a8ff;--gh-f:#1f2533;--gh-s:#cbd5e1;--rec-f:#123524;--rec-s:#4ade80;--con-f:#43390f;--con-s:#facc15;--tx:#e7ecf5}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--acc)}
+nav{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--line);display:flex;gap:6px;overflow-x:auto;padding:10px 16px;white-space:nowrap;align-items:center}
+nav a{text-decoration:none;color:var(--mut);padding:6px 14px;border-radius:999px;font-size:16px;font-weight:500;transition:background .2s,color .2s}
+nav a:hover{background:var(--bg);color:var(--fg)}
+nav a.on{background:var(--acc);color:#fff}
+main{max-width:1280px;margin:0 auto;padding:0 16px 56px}
+h1{font-size:clamp(28px,5vw,44px);line-height:1.1;margin:36px 0 12px;letter-spacing:-.02em}
+h2{font-size:22px;margin:0 0 8px}
+.lead{font-size:20px;color:var(--mut);max-width:860px;margin:0 0 20px}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 24px}
+.chip{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 14px;box-shadow:var(--shadow)}
+.chip b{display:block;font-size:24px;line-height:1.15}
+.chip span{font-size:14px;color:var(--mut)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);margin-bottom:14px}
+.bar h2{margin:0 8px 0 0;font-size:20px}
+button{font:inherit;font-size:17px;font-weight:600;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 16px;cursor:pointer;transition:background .15s,transform .15s,border-color .15s}
+button:hover{border-color:var(--acc);transform:translateY(-1px)}
+button.go{background:var(--acc);border-color:var(--acc);color:#fff}
+button.on{background:var(--hot);border-color:var(--hot);color:#fff}
+button:disabled{opacity:.45;cursor:default;transform:none}
+button:focus-visible,.node:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.count{font-size:16px;color:var(--mut);margin-left:auto}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dots i{width:12px;height:12px;border-radius:50%;background:var(--line);transition:background .2s,transform .2s;cursor:pointer}
+.dots i.done{background:var(--acc)}
+.dots i.now{background:var(--hot);transform:scale(1.35)}
+.mapwrap{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow-x:auto;padding:8px}
+svg{display:block;width:100%;min-width:900px;height:auto}
+svg text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:var(--tx);pointer-events:none}
+.t{font-size:16px;font-weight:700}
+.s{font-size:13px;fill:var(--mut)}
+.lane-label{font-size:15px;font-weight:700}
+.hint{font-size:15px;fill:var(--mut)}.hint.b{font-weight:700;fill:var(--tx)}
+.lane rect,.node rect,.band rect{fill:var(--f);stroke:var(--s);stroke-width:1.6;transition:stroke-width .2s}
+.lane rect,.band rect{fill-opacity:.35;stroke-dasharray:6 5}
+.node{cursor:pointer;transition:opacity .25s,filter .25s}
+.lane,.band{cursor:pointer;transition:opacity .25s,filter .25s}
+.node:hover rect{stroke-width:3}
+.node:hover,.lane:hover,.band:hover{filter:drop-shadow(0 4px 10px color-mix(in srgb,var(--s) 55%,transparent))}
+.sel rect{stroke-width:4}
+.sel{filter:drop-shadow(0 0 8px var(--s))}
+.hot{filter:drop-shadow(0 0 12px var(--s))}
+.hot rect{stroke-width:4}
+.sim .node,.sim .lane,.sim .band{opacity:.28}
+.sim .hot{opacity:1}
+.edge{fill:none;stroke:var(--edge);stroke-width:2;transition:stroke .25s,stroke-width .25s,opacity .25s}
+.edge.soft{stroke-dasharray:5 5}
+.edge.hl{stroke:var(--acc);stroke-width:3.2}
+.edge.on{stroke:var(--hot);stroke-width:4;stroke-dasharray:10 7;animation:flow .9s linear infinite}
+.sim .edge:not(.on){opacity:.25}
+@keyframes flow{to{stroke-dashoffset:-34}}
+@media(prefers-reduced-motion:reduce){.edge.on{animation:none}*{scroll-behavior:auto!important}}
+.c-raw{--f:var(--raw-f);--s:var(--raw-s)}.c-stg{--f:var(--stg-f);--s:var(--stg-s)}.c-hub{--f:var(--hub-f);--s:var(--hub-s)}.c-bv{--f:var(--bv-f);--s:var(--bv-s)}.c-mart{--f:var(--mart-f);--s:var(--mart-s)}.c-sf{--f:var(--sf-f);--s:var(--sf-s)}.c-db{--f:var(--db-f);--s:var(--db-s)}.c-af{--f:var(--af-f);--s:var(--af-s)}.c-gh{--f:var(--gh-f);--s:var(--gh-s)}.c-rec{--f:var(--rec-f);--s:var(--rec-s)}.c-con{--f:var(--con-f);--s:var(--con-s)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px;border-top:6px solid var(--s,var(--line));min-height:260px;transition:border-color .25s}
+.panel h2{font-size:24px}
+.tag{display:inline-block;font-size:14px;font-weight:600;padding:2px 10px;border-radius:999px;background:var(--f,var(--bg));border:1px solid var(--s,var(--line));margin-bottom:8px}
+.panel dl{margin:10px 0 0}
+.panel dt{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-top:12px;font-weight:700}
+.panel dd{margin:2px 0 0}
+.panel ul{margin:2px 0 0;padding-left:20px}
+.panel li{margin:2px 0}
+code{font:15px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-word}
+.fade{animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:14px}
+.links a{display:block;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;text-decoration:none;color:var(--fg);box-shadow:var(--shadow);transition:transform .2s,border-color .2s}
+.links a:hover{transform:translateY(-3px);border-color:var(--acc)}
+.links b{display:block;font-size:20px;color:var(--acc)}
+.links span{color:var(--mut);font-size:16px}
+footer{text-align:center;color:var(--mut);font-size:15px;padding:24px 16px;border-top:1px solid var(--line)}
+@media(max-width:600px){body{font-size:17px}.count{margin-left:0;width:100%}}
+</style>
+</head>
+<body>
+<nav>
+<a class="on" href="index.html">Project map</a><a href="data-flow.html">Data flow</a><a href="platform.html">Platform</a><a href="../index.html">dbt docs</a><a href="https://github.com/aglivin/vault-lakehouse-migration">GitHub repo</a>
+</nav>
+<main>
+<h1>One warehouse, two platforms, one pipeline</h1>
+<p class="lead">A Data Vault 2.0 warehouse for a fictional energy utility. One dbt project builds it on Snowflake and on Databricks. Airflow runs it daily. GitHub Actions tests and deploys it. Click any box, or press Step to follow one day.</p>
+<div class="chips">
+<div class="chip"><b>72</b><span>dbt models</span></div>
+<div class="chip"><b>226</b><span>dbt tests</span></div>
+<div class="chip"><b>4421</b><span>invoices in the marts</span></div>
+<div class="chip"><b>461626.22</b><span>net total, same on both platforms</span></div>
+<div class="chip"><b>0 differences</b><span>in 35 compared tables</span></div>
+</div>
+
+<div class="bar">
+<h2>A day in the life</h2>
+<button class="go" id="step">&#9654; Step</button>
+<button id="reset">&#9198; Reset</button>
+<button id="auto">Auto</button>
+<div class="dots" id="dots"></div>
+<span class="count" id="count">Ready: 12 steps</span>
+</div>
+
+<div class="mapwrap"><svg id="map" viewBox="0 0 1200 670" role="img" aria-label="Project map"><defs>
+<marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--edge)"/></marker>
+<marker id="ahh" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--acc)"/></marker>
+<marker id="aho" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="13" markerHeight="13" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--hot)"/></marker>
+</defs></svg></div>
+
+<div class="cols">
+<section class="panel fade" id="panel" aria-live="polite"></section>
+<section class="panel fade" id="story" aria-live="polite"></section>
+</div>
+
+<div class="links">
+<a href="data-flow.html"><b>Data flow &rarr;</b><span>Bronze to gold with real tables and a step simulator: new customer, address change, duplicate file, delete, new source system.</span></a>
+<a href="platform.html"><b>Platform &rarr;</b><span>Airflow assets and backfill, slim CI and deploy, and the Snowflake to Databricks migration.</span></a>
+<a href="../index.html"><b>dbt docs &rarr;</b><span>Lineage and column descriptions for all 72 models.</span></a>
+</div>
+</main>
+<footer>All data is synthetic. Numbers come from queries and scripts in the repository. <a href="https://github.com/aglivin/vault-lakehouse-migration">Source on GitHub</a></footer>
+<script>
+(function () {
+  var REPO = "https://github.com/aglivin/vault-lakehouse-migration/";
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById("map");
+  var panel = document.getElementById("panel");
+  var story = document.getElementById("story");
+
+  var lanes = [
+    {id: "sf-lane", c: "c-sf", x: 275, y: 175, w: 710, h: 128, label: "Snowflake \u00b7 snowflake_dev",
+      info: {tag: "Platform", title: "Snowflake lane", what: "The reference platform. dbt builds raw, staging, raw vault, business vault and marts here. Hash keys are stored as BINARY.", who: "Airflow (target snowflake_dev), the CI job dbt-slim (schema ci_pr_N) and the deploy workflow (snowflake_prod).", files: ["dbt/profiles.yml", "scripts/build_by_load_date.sh"], nums: ["Hubs: customer 4204, contract 4153, meter 4204, invoice 7612, tariff 12", "Links: customer-contract 4153, contract-meter 4153, contract-invoice 7612, invoice-tariff 7612"]}},
+    {id: "db-lane", c: "c-db", x: 275, y: 375, w: 710, h: 128, label: "Databricks \u00b7 databricks_dev",
+      info: {tag: "Platform", title: "Databricks lane", what: "The same dbt project on Databricks. Dispatch macros hide the SQL differences. Hash keys are stored as upper-case hex STRING.", who: "A person, with dbt build --target databricks_dev, and the Databricks CLI profile personal.", files: ["dbt/profiles.yml", "dbt/macros/compat/hex_key.sql", "dbt/macros/compat/month_trunc.sql"], nums: ["Marts equal the expected totals and equal Snowflake: 4421 invoices, net total 461626.22"]}},
+    {id: "airflow", c: "c-af", x: 275, y: 15, w: 915, h: 135, label: "Airflow 3 + Cosmos", left: true,
+      info: {tag: "Orchestration", title: "Airflow 3 with Cosmos", what: "Astro project. Two DAGs connected by an Asset. Cosmos turns the dbt layers into Airflow task groups.", who: "The scheduler. vdwh_ingest runs @daily for 2026-01-01 to 2026-01-05.", files: ["airflow/dags/vdwh_ingest.py", "airflow/dags/vdwh_transform.py", "docs/airflow.md"], nums: []}},
+    {id: "github", c: "c-gh", x: 10, y: 525, w: 1180, h: 135, label: "GitHub Actions", left: true,
+      info: {tag: "CI/CD", title: "GitHub Actions", what: "Three workflows: ci (checks and slim dbt build on a PR), deploy (prod build and docs on main) and attribution (history check).", who: "A pull request or a push to main.", files: [".github/workflows/ci.yml", ".github/workflows/deploy.yml", ".github/workflows/attribution.yml"], nums: []}}
+  ];
+
+  var nodes = [
+    {id: "gen", c: "c-con", x: 10, y: 300, w: 115, h: 70, t: "Generator", s: ["Python, Faker", "fixed seed"],
+      info: {tag: "Source data", title: "Synthetic data generator", what: "Writes Billing v1 and v2, CRM v1 and v2, the CDC changes and the expected totals. Same seed, same files.", who: "A person: uv run python -m data_generator.", files: ["data_generator/world.py", "data_generator/totals.py", "data_generator/__main__.py"], nums: ["Default 2000 customers, scalable with --customers"]}},
+    {id: "landing", c: "c-raw", x: 145, y: 300, w: 115, h: 70, t: "Landing", s: ["stage / volume", "per load date"],
+      info: {tag: "Landing", title: "Landing files", what: "Each load date is uploaded as files to a Snowflake stage and a Databricks volume. Raw tables are copied from there.", who: "A person, outside the Airflow container (it needs the snow and databricks CLIs).", files: ["scripts/upload_landing.py", "docs/loading.md"], nums: []}},
+    {id: "recon", c: "c-rec", x: 290, y: 312, w: 680, h: 46, t: "Recon: recon__table_stats, one row per table, compared by compare_recon.py", s: [],
+      info: {tag: "Reconciliation", title: "Snowflake against Databricks", what: "A model returns one row per table: row count, key checksum, hashdiff checksum, measure sums. A script compares both platforms.", who: "A person, on each target, before the cut-over.", files: ["dbt/models/recon/recon__table_stats.sql", "scripts/compare_recon.py", "data/recon", "docs/cutover.md"], nums: ["0 differences in 35 tables (snapshot taken before the star-schema PRs)"]}},
+    {id: "cons", c: "c-con", x: 1010, y: 175, w: 180, h: 320, t: "Consumers", s: ["Data products", "", "billing", "sales", "tax", "call centre"], big: true,
+      info: {tag: "Consumers", title: "Data products", what: "Four data products and a star schema, declared as dbt exposures. They are the only thing consumers read.", who: "Analysts and BI tools.", files: ["dbt/models/marts/_exposures.yml", "dbt/models/marts/billing", "dbt/models/marts/sales", "dbt/models/marts/tax", "dbt/models/marts/callcentre"], nums: ["Marts keep their columns and grain when Billing and CRM v1 are replaced by v2: 0 consumer changes"]}},
+    {id: "af-ingest", c: "c-af", x: 290, y: 48, w: 330, h: 84, t: "vdwh_ingest", s: ["@daily, one run per load date", "load_raw > wait_for_idle_transform > publish"],
+      info: {tag: "DAG", title: "vdwh_ingest", what: "Loads one landing date into raw with the dbt macro load_raw, waits until vdwh_transform is idle, then publishes the Asset event with the load date.", who: "Airflow scheduler, @daily; backfill for several dates.", files: ["airflow/dags/vdwh_ingest.py", "airflow/include/vdwh_assets.py"], nums: ["2 retries, 1 minute apart; 75 minute deadline", "max_active_runs 1"]}},
+    {id: "af-asset", c: "c-af", x: 650, y: 55, w: 150, h: 70, t: "Asset", s: ["vdwh/raw_landed", "extra: load_date"],
+      info: {tag: "Asset", title: "Asset vdwh/raw_landed", what: "The event that connects the two DAGs. It carries the load date in its extra data, so the transform knows which date to build.", who: "publish_raw_landed emits it; vdwh_transform is scheduled on it.", files: ["airflow/include/vdwh_assets.py", "docs/airflow.md"], nums: ["resolve_load_date fails, and builds nothing, if one run has events for two dates"]}},
+    {id: "af-transform", c: "c-af", x: 830, y: 48, w: 345, h: 84, t: "vdwh_transform", s: ["Cosmos: seed > staging > raw vault", "> business vault > marts > cross-layer tests"],
+      info: {tag: "DAG", title: "vdwh_transform", what: "Resolves the load date from the Asset event, seeds, builds the four layers as Cosmos task groups with their dbt tests, then runs the cross-layer tests.", who: "The Asset event from vdwh_ingest.", files: ["airflow/dags/vdwh_transform.py", "airflow/include/vdwh_dbt.py", "airflow/include/vdwh_alerts.py"], nums: ["2 retries; 60 minute deadline; failure callback logs an alert"]}},
+    {id: "sf-raw", c: "c-raw", x: 290, y: 205, w: 120, h: 70, t: "Raw", s: ["from stage", "idempotent"], lane: "sf",
+      info: {tag: "Raw", title: "Raw tables (Snowflake)", what: "Landing files copied as they are. Loading the same file twice adds nothing.", who: "dbt run-operation load_raw, called by vdwh_ingest or by a person.", files: ["dbt/macros/raw/load_raw.sql", "dbt/macros/raw/create_raw_tables.sql", "docs/loading.md"], nums: []}},
+    {id: "sf-stg", c: "c-stg", x: 430, y: 205, w: 120, h: 70, t: "Staging", s: ["21 views", "keys, hashdiffs"], lane: "sf",
+      info: {tag: "Layer", title: "Staging", what: "Views over raw for Billing v1 and v2 and CRM v1 and v2. They compute hash keys and hashdiffs.", who: "dbt build, group staging in Cosmos.", files: ["dbt/models/staging", "dbt/macros/staging/stage_raw.sql"], nums: ["21 models"]}},
+    {id: "sf-rv", c: "c-hub", x: 570, y: 205, w: 120, h: 70, t: "Raw vault", s: ["31 models", "hubs, links, sats"], lane: "sf",
+      info: {tag: "Layer", title: "Raw vault", what: "Hubs hold business keys, links hold relations, satellites hold history. Also same-as links, effectivity and status tracking.", who: "dbt build, group raw_vault in Cosmos.", files: ["dbt/models/raw_vault", "dbt/macros/raw_vault/skip_loaded_load_dates.sql"], nums: ["31 models: 5 hubs, 4 links, 4 non-historised links, 5 same-as links", "Hubs: customer 4204, contract 4153, meter 4204, invoice 7612, tariff 12"]}},
+    {id: "sf-bv", c: "c-bv", x: 710, y: 205, w: 120, h: 70, t: "Business vault", s: ["7 models", "masters, PIT"], lane: "sf",
+      info: {tag: "Layer", title: "Business vault", what: "One master model per entity, plus PIT and bridge tables. Same-as links are resolved here into one master key.", who: "dbt build, group business_vault in Cosmos.", files: ["dbt/models/business_vault", "dbt/models/business_vault/pit_customer.sql", "dbt/models/business_vault/bridge_customer_contract.sql"], nums: ["7 models"]}},
+    {id: "sf-marts", c: "c-mart", x: 850, y: 205, w: 120, h: 70, t: "Marts", s: ["12 models", "star + products"], lane: "sf",
+      info: {tag: "Layer", title: "Marts", what: "Star schema (dimensions and facts) and four data products: billing, sales, tax, call centre.", who: "dbt build, group marts in Cosmos.", files: ["dbt/models/marts", "dbt/analyses/mart_vs_expected_totals.sql", "docs/migration.md"], nums: ["12 models", "4421 invoices, net total 461626.22"]}},
+    {id: "db-raw", c: "c-raw", x: 290, y: 405, w: 120, h: 70, t: "Raw", s: ["from volume", "idempotent"], lane: "db",
+      info: {tag: "Raw", title: "Raw tables (Databricks)", what: "The same macro load_raw, with Databricks syntax behind it.", who: "dbt run-operation load_raw --target databricks_dev.", files: ["dbt/macros/raw/load_raw.sql", "scripts/upload_landing.py"], nums: []}},
+    {id: "db-stg", c: "c-stg", x: 430, y: 405, w: 120, h: 70, t: "Staging", s: ["same 21 views", "hex_key macro"], lane: "db",
+      info: {tag: "Layer", title: "Staging (Databricks)", what: "The same models. Keys are upper-case hex STRING; the macro hex_key makes both platforms comparable.", who: "dbt build --target databricks_dev.", files: ["dbt/models/staging", "dbt/macros/compat/hex_key.sql"], nums: []}},
+    {id: "db-rv", c: "c-hub", x: 570, y: 405, w: 120, h: 70, t: "Raw vault", s: ["same 31 models", ""], lane: "db",
+      info: {tag: "Layer", title: "Raw vault (Databricks)", what: "The same hubs, links and satellites. No model was rewritten for the move.", who: "dbt build --target databricks_dev.", files: ["dbt/models/raw_vault", "docs/migration.md"], nums: []}},
+    {id: "db-bv", c: "c-bv", x: 710, y: 405, w: 120, h: 70, t: "Business vault", s: ["same 7 models", ""], lane: "db",
+      info: {tag: "Layer", title: "Business vault (Databricks)", what: "The same masters, PIT and bridge tables.", who: "dbt build --target databricks_dev.", files: ["dbt/models/business_vault"], nums: []}},
+    {id: "db-marts", c: "c-mart", x: 850, y: 405, w: 120, h: 70, t: "Marts", s: ["same 12 models", "date macro"], lane: "db",
+      info: {tag: "Layer", title: "Marts (Databricks)", what: "The same marts. The macro month_trunc hides the date function that differs between the platforms.", who: "dbt build --target databricks_dev.", files: ["dbt/models/marts", "dbt/macros/compat/month_trunc.sql"], nums: ["4421 invoices, net total 461626.22, equal to Snowflake"]}},
+    {id: "gh-pr", c: "c-gh", x: 30, y: 560, w: 170, h: 80, t: "Pull request", s: ["small PR, one step", "branch from main"],
+      info: {tag: "Step 1", title: "Pull request", what: "Every change goes through a branch and a PR. Merge only when CI is green.", who: "The developer.", files: [".github/workflows/ci.yml"], nums: []}},
+    {id: "gh-ci", c: "c-gh", x: 218, y: 560, w: 170, h: 80, t: "CI checks", s: ["sqlfluff, dbt parse", "pytest"],
+      info: {tag: "Step 2", title: "CI checks", what: "Lint the models with sqlfluff, parse the dbt project, run the pytest tests of the scripts. No warehouse needed.", who: "The ci workflow, on every pull request.", files: [".github/workflows/ci.yml", ".github/workflows/attribution.yml"], nums: []}},
+    {id: "gh-slim", c: "c-gh", x: 406, y: 560, w: 170, h: 80, t: "dbt-slim", s: ["state:modified+ + defer", "schema ci_pr_N"],
+      info: {tag: "Step 3", title: "Slim CI build", what: "Builds only the changed models and their children in the schema ci_pr_N on Snowflake, deferring the rest to the prod manifest. Drops the schema at the end.", who: "The ci workflow, after the checks.", files: [".github/workflows/ci.yml", "dbt/macros/ci/drop_pr_schemas.sql", "scripts/build_by_load_date.sh"], nums: ["Builds one load date at a time, 2026-01-01 to 2026-01-05"]}},
+    {id: "gh-merge", c: "c-gh", x: 594, y: 560, w: 170, h: 80, t: "Merge to main", s: ["green CI first", "never forced"],
+      info: {tag: "Step 4", title: "Merge to main", what: "The PR is merged after green CI. The push starts the deploy workflow.", who: "The developer.", files: [".github/workflows/deploy.yml"], nums: []}},
+    {id: "gh-deploy", c: "c-gh", x: 782, y: 560, w: 170, h: 80, t: "Deploy", s: ["snowflake_prod", "per load date"],
+      info: {tag: "Step 5", title: "Deploy", what: "Builds the whole project on snowflake_prod, one load date at a time. Tests run on the last date.", who: "The deploy workflow, on push to main.", files: [".github/workflows/deploy.yml", "scripts/build_by_load_date.sh"], nums: []}},
+    {id: "gh-docs", c: "c-gh", x: 970, y: 560, w: 170, h: 80, t: "dbt docs on Pages", s: ["manifest.json", "published"],
+      info: {tag: "Step 6", title: "dbt docs on GitHub Pages", what: "dbt docs generate runs after the build. The site and the prod manifest are published; the next slim CI run defers to that manifest.", who: "The deploy workflow.", files: [".github/workflows/deploy.yml", "docs/site/index.html"], nums: ["72 models, 226 tests in the lineage"], link: ["Open the dbt docs", "../index.html"]}}
+  ];
+
+  var edges = [
+    {id: "gen-landing", from: "gen", to: "landing", d: "M125 335H145"},
+    {id: "landing-sfraw", from: "landing", to: "sf-raw", d: "M260 335H272V240H285"},
+    {id: "landing-dbraw", from: "landing", to: "db-raw", d: "M260 335H272V440H285"},
+    {id: "ing-asset", from: "af-ingest", to: "af-asset", d: "M620 90H648"},
+    {id: "asset-tr", from: "af-asset", to: "af-transform", d: "M800 90H828"},
+    {id: "ing-raw", from: "af-ingest", to: "sf-raw", d: "M350 132V203"},
+    {id: "tr-stg", from: "af-transform", to: "sf-stg", d: "M860 132V158H490V203"},
+    {id: "tr-marts", from: "af-transform", to: "sf-marts", d: "M910 132V203"},
+    {id: "sf-1", from: "sf-raw", to: "sf-stg", d: "M410 240H428"},
+    {id: "sf-2", from: "sf-stg", to: "sf-rv", d: "M550 240H568"},
+    {id: "sf-3", from: "sf-rv", to: "sf-bv", d: "M690 240H708"},
+    {id: "sf-4", from: "sf-bv", to: "sf-marts", d: "M830 240H848"},
+    {id: "db-1", from: "db-raw", to: "db-stg", d: "M410 440H428"},
+    {id: "db-2", from: "db-stg", to: "db-rv", d: "M550 440H568"},
+    {id: "db-3", from: "db-rv", to: "db-bv", d: "M690 440H708"},
+    {id: "db-4", from: "db-bv", to: "db-marts", d: "M830 440H848"},
+    {id: "rec-sfrv", from: "sf-rv", to: "recon", d: "M630 275V310", soft: true},
+    {id: "rec-sfmarts", from: "sf-marts", to: "recon", d: "M910 275V310", soft: true},
+    {id: "rec-dbrv", from: "db-rv", to: "recon", d: "M630 405V360", soft: true},
+    {id: "rec-dbmarts", from: "db-marts", to: "recon", d: "M910 405V360", soft: true},
+    {id: "sfm-cons", from: "sf-marts", to: "cons", d: "M970 240H1008"},
+    {id: "dbm-cons", from: "db-marts", to: "cons", d: "M970 440H1008"},
+    {id: "gh-1", from: "gh-pr", to: "gh-ci", d: "M200 600H216"},
+    {id: "gh-2", from: "gh-ci", to: "gh-slim", d: "M388 600H404"},
+    {id: "gh-3", from: "gh-slim", to: "gh-merge", d: "M576 600H592"},
+    {id: "gh-4", from: "gh-merge", to: "gh-deploy", d: "M764 600H780"},
+    {id: "gh-5", from: "gh-deploy", to: "gh-docs", d: "M952 600H968"}
+  ];
+
+  var steps = [
+    {t: "A developer opens a pull request", n: ["gh-pr"], e: [], what: "A small PR is opened from a branch. One logical step per PR.", why: "Nothing reaches main without CI.", f: ".github/workflows/ci.yml"},
+    {t: "CI checks run", n: ["gh-pr", "gh-ci"], e: ["gh-1"], what: "sqlfluff lints the models, dbt parse checks the project, pytest runs the script tests.", why: "Cheap checks fail first, before any warehouse time is spent.", f: ".github/workflows/ci.yml"},
+    {t: "dbt-slim builds only what changed", n: ["gh-ci", "gh-slim", "sf-lane"], e: ["gh-2"], what: "state:modified+ with defer builds the changed models and their children in schema ci_pr_N on Snowflake, one load date at a time.", why: "A PR is tested on real data without rebuilding all 72 models.", f: ".github/workflows/ci.yml"},
+    {t: "The PR is merged", n: ["gh-slim", "gh-merge"], e: ["gh-3"], what: "CI is green, the PR is merged into main.", why: "main always equals what is deployed.", f: ".github/workflows/deploy.yml"},
+    {t: "Deploy builds production", n: ["gh-merge", "gh-deploy", "sf-lane"], e: ["gh-4"], what: "The deploy workflow builds snowflake_prod, one load date at a time, from 2026-01-01 to 2026-01-05.", why: "Incremental models see the dates in order, as in production.", f: ".github/workflows/deploy.yml"},
+    {t: "dbt docs and the manifest go to Pages", n: ["gh-deploy", "gh-docs"], e: ["gh-5"], what: "dbt docs generate runs, and the site with manifest.json is published.", why: "The next PR defers to this manifest, and readers get the lineage.", f: ".github/workflows/deploy.yml"},
+    {t: "Airflow ingests load date 2026-01-05", n: ["af-ingest", "landing", "sf-raw", "airflow"], e: ["landing-sfraw", "ing-raw"], what: "vdwh_ingest runs load_raw. The files of that date go from the stage into the raw tables.", why: "Loading is idempotent, so a retry or a rerun adds no rows.", f: "airflow/dags/vdwh_ingest.py"},
+    {t: "The sensor waits, then the Asset event is published", n: ["af-ingest", "af-asset"], e: ["ing-asset"], what: "wait_for_idle_transform waits until vdwh_transform has no queued or running run. Then publish_raw_landed emits the event with load_date 2026-01-05.", why: "With max_active_runs 1, waiting events would merge into one run with two dates.", f: "docs/airflow.md"},
+    {t: "vdwh_transform starts", n: ["af-asset", "af-transform"], e: ["asset-tr"], what: "The Asset event schedules the DAG. resolve_load_date reads the date from the event and passes it to every dbt task.", why: "The transform builds exactly the date that landed.", f: "airflow/include/vdwh_assets.py"},
+    {t: "Four layers are built", n: ["af-transform", "sf-stg", "sf-rv", "sf-bv", "sf-marts"], e: ["tr-stg", "tr-marts", "sf-2", "sf-3", "sf-4"], what: "Cosmos runs the task groups in order: staging, raw vault, business vault, marts.", why: "Each layer reads only the layer before it.", f: "airflow/dags/vdwh_transform.py"},
+    {t: "Tests run", n: ["af-transform", "sf-marts"], e: ["tr-marts"], what: "Each Cosmos group runs the dbt tests of its models. Then cross_layer_tests runs the tests tagged cross_layer, such as mart totals against expected totals.", why: "Wrong numbers fail the run instead of reaching consumers.", f: "dbt/tests/assert_mart_matches_expected_totals.sql"},
+    {t: "Recon compares both platforms", n: ["recon", "sf-rv", "sf-marts", "db-rv", "db-marts", "cons"], e: ["rec-sfrv", "rec-sfmarts", "rec-dbrv", "rec-dbmarts", "sfm-cons", "dbm-cons"], what: "recon__table_stats runs on both targets. compare_recon.py compares row counts, key and hashdiff checksums and measure sums.", why: "0 differences in 35 tables is the evidence for the cut-over.", f: "scripts/compare_recon.py"}
+  ];
+
+  var byId = {};
+  var els = {};
+  var edgeEls = {};
+  var cur = 0;
+  var timer = null;
+  var selected = null;
+
+  function mk(tag, attrs, parent) {
+    var el = document.createElementNS(NS, tag);
+    for (var k in attrs) { el.setAttribute(k, attrs[k]); }
+    if (parent) { parent.appendChild(el); }
+    return el;
+  }
+
+  function text(parent, cls, x, y, str, anchor) {
+    var t = mk("text", {"class": cls, x: x, y: y}, parent);
+    if (anchor) { t.setAttribute("text-anchor", anchor); }
+    t.textContent = str;
+    return t;
+  }
+
+  function build() {
+    var back = mk("g", {}, svg);
+    lanes.forEach(function (l) {
+      byId[l.id] = l;
+      var g = mk("g", {"class": (l.left ? "band " : "lane ") + l.c, tabindex: 0, role: "button", "aria-label": l.info.title}, back);
+      mk("rect", {x: l.x, y: l.y, width: l.w, height: l.h, rx: 18}, g);
+      text(g, "lane-label", l.x + 18, l.left ? l.y + 24 : l.y + l.h - 10, l.label, "start");
+      bind(g, l.id);
+      els[l.id] = g;
+    });
+    var edgeLayer = mk("g", {}, svg);
+    edges.forEach(function (e) {
+      var p = mk("path", {"class": "edge" + (e.soft ? " soft" : ""), d: e.d, "marker-end": "url(#ah)"}, edgeLayer);
+      edgeEls[e.id] = p;
+    });
+    var front = mk("g", {}, svg);
+    nodes.forEach(function (n) {
+      byId[n.id] = n;
+      var g = mk("g", {"class": "node " + n.c, tabindex: 0, role: "button", "aria-label": n.info.title}, front);
+      mk("rect", {x: n.x, y: n.y, width: n.w, height: n.h, rx: 12}, g);
+      if (n.big) {
+        text(g, "t", n.x + n.w / 2, n.y + 34, n.t, "middle");
+        n.s.forEach(function (line, i) { text(g, i < 2 ? "s" : "t", n.x + n.w / 2, n.y + 66 + i * 30, line, "middle"); });
+      } else if (n.id === "recon") {
+        text(g, "t", n.x + n.w / 2, n.y + 29, n.t, "middle");
+      } else {
+        text(g, "t", n.x + n.w / 2, n.y + 26, n.t, "middle");
+        n.s.forEach(function (line, i) { text(g, "s", n.x + n.w / 2, n.y + 46 + i * 16, line, "middle"); });
+      }
+      bind(g, n.id);
+      els[n.id] = g;
+    });
+    ["How to read it", "Click a box for details.", "Press Step to follow a day.", "Dashed arrows compare data."].forEach(function (line, i) {
+      text(svg, i ? "hint" : "hint b", 24, 52 + i * 22, line, "start");
+    });
+  }
+
+  function bind(g, id) {
+    g.addEventListener("click", function () { select(id); });
+    g.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(id); } });
+    g.addEventListener("mouseenter", function () { hover(id, true); });
+    g.addEventListener("mouseleave", function () { hover(id, false); });
+    g.addEventListener("focus", function () { hover(id, true); });
+    g.addEventListener("blur", function () { hover(id, false); });
+  }
+
+  function hover(id, on) {
+    edges.forEach(function (e) {
+      if (e.from === id || e.to === id) { edgeEls[e.id].classList.toggle("hl", on); edgeEls[e.id].setAttribute("marker-end", on ? "url(#ahh)" : "url(#ah)"); }
+    });
+  }
+
+  function el(tag, cls, str) {
+    var e = document.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (str !== undefined) { e.textContent = str; }
+    return e;
+  }
+
+  function fileLink(path) {
+    var a = el("a", "", path);
+    var isDir = path.indexOf(".") < 0 || path.split("/").pop().indexOf(".") < 0;
+    a.href = REPO + (isDir ? "tree/main/" : "blob/main/") + path;
+    var c = el("code");
+    c.appendChild(a);
+    return c;
+  }
+
+  function section(dl, label, content) {
+    dl.appendChild(el("dt", "", label));
+    var dd = el("dd");
+    if (typeof content === "string") { dd.textContent = content; } else { dd.appendChild(content); }
+    dl.appendChild(dd);
+  }
+
+  function list(items, fn) {
+    var ul = el("ul");
+    items.forEach(function (x) { var li = el("li"); var v = fn(x); if (typeof v === "string") { li.textContent = v; } else { li.appendChild(v); } ul.appendChild(li); });
+    return ul;
+  }
+
+  function renderPanel(id) {
+    var o = byId[id];
+    var i = o.info;
+    panel.className = "panel " + o.c;
+    panel.innerHTML = "";
+    void panel.offsetWidth;
+    panel.classList.add("fade");
+    panel.appendChild(el("span", "tag", i.tag));
+    panel.appendChild(el("h2", "", i.title));
+    var dl = el("dl");
+    section(dl, "What it does", i.what);
+    section(dl, "Who triggers it", i.who);
+    section(dl, "Files", list(i.files, fileLink));
+    if (i.nums.length) { section(dl, "Key numbers", list(i.nums, function (x) { return x; })); }
+    if (i.link) { var a = el("a", "", i.link[0]); a.href = i.link[1]; section(dl, "Open", a); }
+    panel.appendChild(dl);
+  }
+
+  function renderWelcome() {
+    panel.className = "panel";
+    panel.innerHTML = "";
+    panel.appendChild(el("span", "tag", "Selected box"));
+    panel.appendChild(el("h2", "", "Click any box on the map"));
+    var dl = el("dl");
+    section(dl, "What you see", "Top: Airflow with two DAGs and an Asset. Middle: the same layers on Snowflake and on Databricks, with a recon check between them. Bottom: the GitHub workflow from pull request to published docs.");
+    section(dl, "What you get", "What the box does, who triggers it, the file in the repository and the key numbers.");
+    panel.appendChild(dl);
+  }
+
+  function select(id) {
+    if (selected && els[selected]) { els[selected].classList.remove("sel"); }
+    selected = id;
+    els[id].classList.add("sel");
+    renderPanel(id);
+  }
+
+  function dotsBuild() {
+    var d = document.getElementById("dots");
+    steps.forEach(function (s, i) {
+      var b = el("i");
+      b.title = s.t;
+      b.addEventListener("click", function () { go(i + 1); });
+      d.appendChild(b);
+    });
+  }
+
+  function paint() {
+    var dots = document.getElementById("dots").children;
+    for (var i = 0; i < dots.length; i++) {
+      dots[i].className = i + 1 < cur ? "done" : (i + 1 === cur ? "now" : "");
+    }
+    Object.keys(els).forEach(function (k) { els[k].classList.remove("hot"); });
+    Object.keys(edgeEls).forEach(function (k) { edgeEls[k].classList.remove("on"); edgeEls[k].setAttribute("marker-end", "url(#ah)"); });
+    svg.classList.toggle("sim", cur > 0);
+    var count = document.getElementById("count");
+    var stepBtn = document.getElementById("step");
+    if (cur === 0) {
+      count.textContent = "Ready: " + steps.length + " steps";
+      stepBtn.disabled = false;
+      renderStoryIdle();
+      return;
+    }
+    var s = steps[cur - 1];
+    count.textContent = "Step " + cur + " of " + steps.length;
+    s.n.forEach(function (id) { els[id].classList.add("hot"); });
+    s.e.forEach(function (id) { edgeEls[id].classList.add("on"); edgeEls[id].setAttribute("marker-end", "url(#aho)"); });
+    stepBtn.disabled = cur >= steps.length;
+    renderStory(s);
+  }
+
+  function renderStoryIdle() {
+    story.className = "panel fade";
+    story.style.removeProperty("--s");
+    story.innerHTML = "";
+    story.appendChild(el("span", "tag", "Simulator"));
+    story.appendChild(el("h2", "", "Follow one change from pull request to reconciled marts"));
+    var dl = el("dl");
+    section(dl, "How", "Press Step. Boxes and arrows light up along the path. This box tells what happened, why, and which file does it.");
+    section(dl, "Order", "Pull request, CI, merge, deploy, docs. Then the Airflow run for load date 2026-01-05: ingest, Asset, transform, tests. Last, the Snowflake against Databricks check.");
+    story.appendChild(dl);
+  }
+
+  function renderStory(s) {
+    story.className = "panel";
+    story.style.setProperty("--s", "var(--hot)");
+    story.innerHTML = "";
+    void story.offsetWidth;
+    story.classList.add("fade");
+    story.appendChild(el("span", "tag", "Step " + cur + " of " + steps.length));
+    story.appendChild(el("h2", "", s.t));
+    var dl = el("dl");
+    section(dl, "What happened", s.what);
+    section(dl, "Why", s.why);
+    section(dl, "File", fileLink(s.f));
+    story.appendChild(dl);
+  }
+
+  function go(n) {
+    cur = Math.max(0, Math.min(steps.length, n));
+    paint();
+  }
+
+  function stopAuto() {
+    if (timer) { clearInterval(timer); timer = null; }
+    document.getElementById("auto").classList.remove("on");
+    document.getElementById("auto").textContent = "Auto";
+  }
+
+  document.getElementById("step").addEventListener("click", function () { stopAuto(); go(cur + 1); });
+  document.getElementById("reset").addEventListener("click", function () { stopAuto(); go(0); });
+  document.getElementById("auto").addEventListener("click", function () {
+    if (timer) { stopAuto(); return; }
+    var b = document.getElementById("auto");
+    b.classList.add("on");
+    b.textContent = "Stop";
+    if (cur >= steps.length) { go(0); }
+    go(cur + 1);
+    timer = setInterval(function () {
+      if (cur >= steps.length) { stopAuto(); return; }
+      go(cur + 1);
+    }, 2200);
+  });
+
+  build();
+  dotsBuild();
+  renderWelcome();
+  paint();
+})();
+</script>
+</body>
+</html>

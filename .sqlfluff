@@ -1,3 +1,6 @@
 [sqlfluff]
 dialect = snowflake
 templater = jinja
+
+[sqlfluff:templater:jinja:macros]
+month_trunc = {% macro month_trunc(date_expression) %}date_trunc('month', {{ date_expression }}){% endmacro %}

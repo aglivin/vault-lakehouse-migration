@@ -93,8 +93,8 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 - [x] Add v2 staging models next to v1
 - [x] Same-as link between v1 and v2 business keys
 - [x] New satellites for v2 attributes; old satellites closed, not dropped
-- [ ] Marts unchanged for consumers; reconciliation proves equal totals before and after the switch
-- [ ] Write-up: what changed in each layer and why
+- [x] Marts unchanged for consumers; reconciliation proves equal totals before and after the switch
+- [x] Write-up: what changed in each layer and why ([docs/source-change.md](docs/source-change.md))
 
 ### Phase 4 — Business vault and marts
 

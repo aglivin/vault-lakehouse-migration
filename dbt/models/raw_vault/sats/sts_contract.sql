@@ -1,6 +1,22 @@
 {{ config(materialized='incremental') }}
 
-with staged as (
+with staged_union as (
+    select
+        contract_hk,
+        load_datetime,
+        op,
+        record_source
+    from {{ ref('stg_billing_v1__contracts') }}
+    union all
+    select
+        contract_hk,
+        load_datetime,
+        op,
+        record_source
+    from {{ ref('stg_billing_v2__agreements') }}
+),
+
+staged as (
     select
         contract_hk,
         load_datetime,
@@ -9,7 +25,7 @@ with staged as (
         lag(op)
             over (partition by contract_hk order by load_datetime)
             as previous_staged_status
-    from {{ ref('stg_billing_v1__contracts') }}
+    from staged_union
 ),
 
 {% if is_incremental() %}

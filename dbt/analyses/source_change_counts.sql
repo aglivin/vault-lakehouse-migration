@@ -11,7 +11,8 @@
     'sat_contract_details_billing_v1',
     'sat_invoice_details_billing_v1',
     'sat_invoice_line_billing_v1',
-    'sat_tariff_details_billing_v1'
+    'sat_tariff_details_billing_v1',
+    'sat_customer_phone_ma'
 ] %}
 
 with entity_counts as (
@@ -39,6 +40,19 @@ with entity_counts as (
                 select count(distinct {{ spec.v2[2] }})
                 from {{ source(spec.v2[0], spec.v2[1]) }}
             ) as v2_keys,
+            (
+                select count(distinct v2.{{ spec.v2[2] }})
+                from {{ source(spec.v2[0], spec.v2[1]) }} as v2
+                where not exists (
+                    select 1
+                    from
+                        {{ source(spec.key_map, spec.key_map ~ '__key_map') }}
+                            as key_map
+                    where
+                        key_map.entity = '{{ entity }}'
+                        and key_map.v2_key = v2.{{ spec.v2[2] }}
+                )
+            ) as v2_keys_without_v1,
             (select count(*) from {{ ref('hub_' ~ entity) }}) as hub_rows
         {% if not loop.last %}
             union all
@@ -65,7 +79,7 @@ select
     v2_keys_missing_in_hub,
     v1_keys,
     v2_keys,
-    v2_keys - key_map_rows as v2_keys_without_v1,
+    v2_keys_without_v1,
     hub_rows,
     hub_rows - sal_rows as business_entities,
     cast(null as date) as last_load_datetime

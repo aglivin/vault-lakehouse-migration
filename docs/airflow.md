@@ -37,21 +37,58 @@ To build a date, trigger `vdwh_ingest` for it. Do not trigger `vdwh_transform` b
 
 ## Local run
 
-Copy `airflow/.env.example` to `airflow/.env` and fill it in. `SNOWFLAKE_KEY_FILE` is the host path of the Snowflake key; it must be exported in the shell that runs `astro dev start`, because Docker Compose reads it for the volume mount.
+Before the first start, run the Snowflake steps 1 to 9 of the README Getting started: the DAGs need the dbt packages in `dbt/dbt_packages`, the raw tables and the landing files.
 
-```
-cd airflow
-astro dev start
-astro dev run dags unpause vdwh_ingest
-astro dev run dags unpause vdwh_transform
-astro dev run dags trigger vdwh_ingest --logical-date 2026-01-01T00:00:00+00:00
-```
+1. Create `airflow/.env` from the template.
+
+   ```
+   cp airflow/.env.example airflow/.env
+   ```
+
+   Copy the values `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, `SNOWFLAKE_ROLE`, `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE` and `DBT_DEV_SCHEMA` from the root `.env`. Keep `SNOWFLAKE_PRIVATE_KEY_PATH=/usr/local/airflow/secrets/snowflake_key.p8`: it is the key path inside the container. Keep `AIRFLOW__CORE__PARALLELISM=4` (see below).
+
+2. Create the Astro project file. `airflow/.astro/` is git-ignored, so a fresh clone has no `.astro/config.yaml`, and `astro dev start` then fails with "this is not an Astro project directory". Do not use `astro dev init`: it overwrites the Dockerfile, the requirements and the DAGs.
+
+   ```
+   cd airflow
+   mkdir -p .astro && printf 'project:\n  name: vdwh\n' > .astro/config.yaml
+   ```
+
+3. Export `SNOWFLAKE_KEY_FILE`, the host path of the Snowflake key. Docker Compose reads it for the volume mount in `docker-compose.override.yml`, so both `astro dev start` and `astro dev stop` need it. Without it `astro dev stop` exits with code 1 and prints nothing.
+
+   ```
+   set -a; source ../.env; set +a
+   export SNOWFLAKE_KEY_FILE="$SNOWFLAKE_PRIVATE_KEY_PATH"
+   ```
+
+4. Start Airflow. Right after `astro dev start` returns, the DAGs are not parsed yet, and `dags unpause` fails with exit code 2. Wait about 40 seconds, or poll `dags list` as below.
+
+   ```
+   astro dev start
+   until astro dev run dags list 2>/dev/null | grep -q vdwh_transform; do sleep 10; done
+   astro dev run dags unpause vdwh_ingest
+   astro dev run dags unpause vdwh_transform
+   astro dev run dags trigger vdwh_ingest --logical-date 2026-01-01T00:00:00+00:00
+   ```
+
+5. Stop Airflow in a shell where `SNOWFLAKE_KEY_FILE` is exported.
+
+   ```
+   astro dev stop
+   ```
 
 `load_raw` uses `{{ ds }}`, so a manual trigger of `vdwh_ingest` needs `--logical-date` for the load date; a trigger without it uses the current time as the date.
 
 Run the load dates in order: the raw vault is insert-only and a later date must not land before an earlier one.
 
-Cosmos runs one dbt process per model, and every process parses the project. On a laptop with 8 GB for Docker, 16 parallel parses starve the task heartbeats and the scheduler kills the tasks. Set `AIRFLOW__CORE__PARALLELISM=4` in `airflow/.env` to prevent this.
+Cosmos runs one dbt process per model, and every process parses the project. On a laptop with 8 GB for Docker, 16 parallel parses starve the task heartbeats and the scheduler kills the tasks. `AIRFLOW__CORE__PARALLELISM=4` in `airflow/.env` prevents this; the template sets it.
+
+Port conflict: when another Astro project already uses 8080 and 5432, move this one before `astro dev start`:
+
+```
+astro config set webserver.port 8081
+astro config set postgres.port 5433
+```
 
 ## Backfill
 
@@ -62,6 +99,8 @@ astro dev run backfill create --dag-id vdwh_ingest \
   --from-date 2026-01-02 --to-date 2026-01-03 \
   --max-active-runs 1
 ```
+
+`backfill create` unpauses `vdwh_ingest` itself; a later `dags unpause vdwh_ingest` then prints "No paused DAGs" and does nothing.
 
 `--reprocess-behavior completed` is optional: add it to run again dates that already have a successful run. The verification run used the command above without it, because 2026-01-02 and 2026-01-03 had no runs yet.
 

@@ -268,7 +268,7 @@ Fill in `.env` after the copy. `dbt/profiles.yml` reads env vars only. For Datab
 
 ## Known limits
 
-- Databricks: the Unity Catalog metastore table quota of the free workspace is full (dropped tables still count until their retention ends). Models added after the reconciliation snapshot are built and tested on Snowflake only. The Airflow target switch ran 91 of 92 tasks green on Databricks; the last one needs a new table.
+- Databricks: the Unity Catalog metastore table quota of the free workspace is full (dropped tables still count until their retention ends). Models added after the reconciliation snapshot are built and tested on Snowflake only. In one local Astro run on 2026-11-15 (PR #29), the Airflow target switch ran 91 of 92 tasks green on Databricks; the last task needs a new table.
 - Volumes are small (2000 customers by default, 50 000 for the performance runs).
 
 ## Roadmap

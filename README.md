@@ -112,7 +112,7 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 - [ ] DAG: ingest → `dbt build` per layer with Cosmos (one task per model, tests included)
 - [ ] Sensors / dataset-driven scheduling between ingest and transform
 - [ ] Retries, SLAs, alerting on failure
-- [ ] Backfill of a past load date
+- [ ] Backfill of a past load date (load rule and replay: [docs/loading.md](docs/loading.md))
 
 ### Phase 6 — GitHub Actions CI/CD
 

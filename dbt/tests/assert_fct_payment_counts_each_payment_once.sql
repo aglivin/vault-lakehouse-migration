@@ -1,3 +1,5 @@
+{{ config(tags=['cross_layer']) }}
+
 with source_payments as (
     select
         invoice_hk,

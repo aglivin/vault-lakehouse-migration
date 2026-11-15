@@ -7,6 +7,8 @@ models:
         data_tests:
           - not_null
           - relationships:
+              config:
+                tags: [cross_layer]
               arguments:
                 to: ref('hub_customer')
                 field: customer_hk
@@ -18,6 +20,8 @@ models:
         data_tests:
           - not_null
           - relationships:
+              config:
+                tags: [cross_layer]
               arguments:
                 to: ref('hub_contract')
                 field: contract_hk
@@ -29,6 +33,8 @@ models:
         data_tests:
           - not_null
           - relationships:
+              config:
+                tags: [cross_layer]
               arguments:
                 to: ref('hub_invoice')
                 field: invoice_hk
@@ -40,6 +46,8 @@ models:
         data_tests:
           - not_null
           - relationships:
+              config:
+                tags: [cross_layer]
               arguments:
                 to: ref('hub_tariff')
                 field: tariff_hk
@@ -51,6 +59,8 @@ models:
         data_tests:
           - not_null
           - relationships:
+              config:
+                tags: [cross_layer]
               arguments:
                 to: ref('hub_meter')
                 field: meter_hk
@@ -65,6 +75,8 @@ models:
         data_tests:
           - not_null
           - relationships:
+              config:
+                tags: [cross_layer]
               arguments:
                 to: ref('hub_customer')
                 field: customer_hk
@@ -86,6 +98,8 @@ models:
         data_tests:
           - not_null
           - relationships:
+              config:
+                tags: [cross_layer]
               arguments:
                 to: ref('hub_customer')
                 field: customer_hk
@@ -93,6 +107,8 @@ models:
         data_tests:
           - not_null
           - relationships:
+              config:
+                tags: [cross_layer]
               arguments:
                 to: ref('hub_contract')
                 field: contract_hk

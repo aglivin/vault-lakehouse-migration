@@ -1,3 +1,5 @@
+{{ config(tags=['cross_layer']) }}
+
 with v1_groups as (
     select
         customer_master.master_customer_hk,

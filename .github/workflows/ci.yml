@@ -26,10 +26,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync
-      - run: uv run pytest -q
       - run: uv run dbt deps --project-dir dbt --profiles-dir dbt --target snowflake_dev
       - run: uv run sqlfluff lint dbt/models
       - run: uv run dbt parse --project-dir dbt --profiles-dir dbt --target snowflake_dev
+      - run: uv run pytest -q
 
   dbt-slim:
     needs: checks

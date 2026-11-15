@@ -1,3 +1,5 @@
+{{ config(tags=['cross_layer']) }}
+
 with changed_in_source as (
     select count(*) as customers
     from (

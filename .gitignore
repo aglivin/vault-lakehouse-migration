@@ -7,3 +7,7 @@ dbt/logs/
 logs/
 .DS_Store
 airflow/.astro/
+*.p8
+*.pem
+*_rsa_key*
+dbt/.user.yml

@@ -62,8 +62,8 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 ### Phase 0 — Accounts and local setup
 
-- [ ] Snowflake trial account (30 days), warehouse `XS`, role `TRANSFORMER`, database `VDWH_DEV`
-- [ ] Databricks Free Edition workspace (personal, not a client workspace), Unity Catalog `vdwh_dev`
+- [x] Snowflake trial account (30 days), warehouse `XS`, role `TRANSFORMER`, database `VDWH_DEV`
+- [x] Databricks Free Edition workspace (personal, not a client workspace), Unity Catalog `vdwh_dev`
 - [x] Docker Desktop running; Astro CLI installed
 - [x] `uv` project with `dbt-core`, `dbt-snowflake`, `dbt-databricks`, `sqlfluff`, `pre-commit`
 - [x] Snowflake CLI (`snow`) installed

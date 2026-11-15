@@ -1,0 +1,34 @@
+models:
+  - name: callcentre__contacts_fcr
+    description: >-
+      Call-centre data product, grain contact_month, channel and reason. fcr_rate is the share of contacts resolved at first contact.
+      A v1 contact and its v2 interaction with the same customer, time, channel and reason count once.
+    config:
+      contract:
+        enforced: true
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [contact_month, channel, reason]
+    columns:
+      - name: contact_month
+        description: First day of the contact month.
+        data_type: date
+        data_tests: [not_null]
+      - name: channel
+        description: Contact channel.
+        data_type: string
+        data_tests: [not_null]
+      - name: reason
+        description: Contact reason.
+        data_type: string
+        data_tests: [not_null]
+      - name: contact_count
+        description: Contacts in the group.
+        data_type: integer
+      - name: resolved_first_contact_count
+        description: Contacts resolved at first contact.
+        data_type: integer
+      - name: fcr_rate
+        description: Resolved first contact count divided by contact count.
+        data_type: decimal(9,4)

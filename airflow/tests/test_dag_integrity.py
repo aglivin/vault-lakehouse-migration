@@ -9,7 +9,9 @@ LAYERS = ["staging", "raw_vault", "business_vault", "marts"]
 
 @pytest.fixture(scope="module")
 def dag_bag():
-    return DagBag(dag_folder=str(Path(__file__).parents[1] / "dags"), include_examples=False)
+    return DagBag(
+        dag_folder=str(Path(__file__).parents[1] / "dags"), include_examples=False
+    )
 
 
 @pytest.fixture(scope="module")

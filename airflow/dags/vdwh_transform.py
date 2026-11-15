@@ -4,17 +4,19 @@ from pathlib import Path
 
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.sdk import Param, dag
-from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig, RenderConfig
+from cosmos import (
+    DbtTaskGroup,
+    ExecutionConfig,
+    ProfileConfig,
+    ProjectConfig,
+    RenderConfig,
+)
 from cosmos.constants import TestIndirectSelection
 from cosmos.operators.local import DbtRunOperationLocalOperator, DbtTestLocalOperator
 
 DBT_PROJECT_DIR = Path(os.environ.get("DBT_PROJECT_DIR", "/usr/local/airflow/dbt"))
 DBT_EXECUTABLE = os.environ.get("DBT_EXECUTABLE", "/usr/local/airflow/dbt_venv/bin/dbt")
-CROSS_LAYER_TESTS = [
-    "relationships_bv_*",
-    "assert_unmapped_keys_survive",
-    "assert_mart_matches_expected_totals",
-]
+CROSS_LAYER_TESTS = ["tag:cross_layer"]
 LAYERS = ["staging", "raw_vault", "business_vault", "marts"]
 
 profile_config = ProfileConfig(
@@ -44,11 +46,13 @@ operator_args = {
     is_paused_upon_creation=True,
     max_active_runs=1,
     render_template_as_native_obj=True,
-    params={"full_refresh": Param(
+    params={
+        "full_refresh": Param(
             False,
             type="boolean",
             description="Rebuilds the incremental vault from the run date only. Use it for the first date.",
-        )},
+        )
+    },
     default_args={"retries": 2, "retry_delay": timedelta(minutes=1)},
 )
 def vdwh_transform():

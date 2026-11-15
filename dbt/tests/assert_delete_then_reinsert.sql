@@ -4,6 +4,7 @@ with raw_contracts as (
         op,
         _load_date as load_date
     from {{ source('billing_v1', 'billing_v1__contracts') }}
+    where _load_date <= (select max(load_datetime) from {{ ref('sts_contract') }})
 ),
 
 raw_delete_then_insert as (
@@ -43,3 +44,4 @@ select
     'no contract with D then I in raw' as failure
 from (select count(*) as total from raw_delete_then_insert) as counts
 where counts.total = 0
+    and (select count(distinct load_datetime) from {{ ref('sts_contract') }}) >= 3

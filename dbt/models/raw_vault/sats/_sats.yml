@@ -88,6 +88,10 @@ models:
               arguments:
                 to: ref('link_customer_contract')
                 field: customer_contract_hk
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['customer_contract_hk', 'load_datetime']
   - name: sts_contract
     columns:
       - name: contract_hk

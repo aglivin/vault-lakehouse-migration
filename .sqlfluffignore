@@ -1,5 +1,9 @@
-dbt/models/staging/**/stg_*.sql
+dbt/models/staging/billing_v1/stg_*.sql
+dbt/models/staging/crm_v1/stg_crm_v1__contacts.sql
+dbt/models/staging/crm_v1/stg_crm_v1__customer_phones.sql
+dbt/models/staging/crm_v1/stg_crm_v1__customers.sql
 dbt/models/raw_vault/hubs/hub_*.sql
 dbt/models/raw_vault/links/link_*.sql
 dbt/models/raw_vault/sats/sat_*.sql
 dbt/models/raw_vault/sats/eff_sat_*.sql
+dbt/models/staging/crm_v1/stg_crm_v1__customer_phones_current.sql

@@ -13,22 +13,22 @@ with staged as (
 ),
 
 {% if is_incremental() %}
-    ranked_stored as (
+    stored_before as (
         select
-            contract_hk,
-            status,
+            staged.contract_hk,
+            staged.load_datetime,
+            stored.status,
             row_number()
-                over (partition by contract_hk order by load_datetime desc)
+                over (
+                    partition by staged.contract_hk, staged.load_datetime
+                    order by stored.load_datetime desc
+                )
                 as recency
-        from {{ this }}
-    ),
-
-    latest_stored as (
-        select
-            contract_hk,
-            status
-        from ranked_stored
-        where recency = 1
+        from staged
+        inner join {{ this }} as stored
+            on
+                staged.contract_hk = stored.contract_hk
+                and staged.load_datetime > stored.load_datetime
     ),
 
     compared as (
@@ -37,12 +37,21 @@ with staged as (
             staged.load_datetime,
             staged.status,
             staged.record_source,
-            coalesce(staged.previous_staged_status, latest_stored.status)
+            coalesce(staged.previous_staged_status, stored_before.status)
                 as previous_status
         from staged
-        left join
-            latest_stored
-            on staged.contract_hk = latest_stored.contract_hk
+        left join stored_before
+            on
+                staged.contract_hk = stored_before.contract_hk
+                and staged.load_datetime = stored_before.load_datetime
+                and stored_before.recency = 1
+        where not exists (
+            select 1
+            from {{ this }} as existing
+            where
+                existing.contract_hk = staged.contract_hk
+                and existing.load_datetime = staged.load_datetime
+        )
     )
 {% else %}
     compared as (

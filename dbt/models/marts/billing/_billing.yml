@@ -43,7 +43,8 @@ models:
           alias: billing__revenue_by_tariff_month
   - name: billing__open_receivables
     description: >-
-      Billing data product, grain one row per invoice with an unpaid balance.
+      Billing data product, grain one row per invoice with an unpaid balance as of the latest load.
+      days_overdue counts days from due_date to the latest load date, never below zero; it does not use the current date.
       gross_amount is net plus VAT. paid_amount sums fct_payment. open_amount is gross minus paid and is always above zero.
     config:
       contract:
@@ -60,19 +61,30 @@ models:
       - name: customer_no
         description: Master customer number of the contract.
         data_type: string
+        data_tests: [not_null]
       - name: invoice_date
         description: Invoice date.
         data_type: date
+      - name: due_date
+        description: Payment due date of the invoice.
+        data_type: date
+      - name: days_overdue
+        description: Days from due_date to the latest load date, zero when not yet due.
+        data_type: integer
+        data_tests: [not_null]
       - name: gross_amount
         description: Net plus VAT.
         data_type: decimal(18,2)
+        data_tests: [not_null]
       - name: paid_amount
         description: Sum of payments on the invoice.
         data_type: decimal(18,2)
+        data_tests: [not_null]
       - name: open_amount
         description: Gross minus paid.
         data_type: decimal(18,2)
         data_tests:
+          - not_null
           - dbt_utils.accepted_range:
               arguments:
                 min_value: 0

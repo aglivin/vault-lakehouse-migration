@@ -25,6 +25,8 @@ models:
       - name: net_amount
         description: Net amount of all lines, VAT excluded.
         data_type: decimal(18,2)
+        data_tests: [not_null]
       - name: vat_amount
         description: VAT amount of the invoice.
         data_type: decimal(18,2)
+        data_tests: [not_null]

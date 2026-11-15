@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      SNOWFLAKE_ACCOUNT: dummy
+      SNOWFLAKE_USER: dummy
+      SNOWFLAKE_PRIVATE_KEY_PATH: /tmp/dummy.p8
+      SNOWFLAKE_ROLE: dummy
+      SNOWFLAKE_WAREHOUSE: dummy
+      SNOWFLAKE_DATABASE: dummy
+      DATABRICKS_HOST: https://dummy.example.com
+      DATABRICKS_HTTP_PATH: /sql/dummy
+      DATABRICKS_TOKEN: dummy
+      DATABRICKS_CATALOG: dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - run: uv run pytest -q
+      - run: uv run sqlfluff lint dbt/models
+      - run: uv run dbt parse --project-dir dbt --profiles-dir dbt --target snowflake_dev

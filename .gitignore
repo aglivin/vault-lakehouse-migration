@@ -11,3 +11,4 @@ airflow/.astro/
 *.pem
 *_rsa_key*
 dbt/.user.yml
+data/out/

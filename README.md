@@ -72,9 +72,9 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 ### Phase 1 — Synthetic sources
 
-- [ ] Python generator for Billing v1, CRM v1 (Faker, fixed seed, ~50k customers)
+- [x] Python generator for Billing v1, CRM v1 (Faker, fixed seed, ~50k customers)
 - [ ] Billing v2, CRM v2 with new keys, renamed columns and a key-mapping table
-- [ ] Daily incremental loads with inserts, updates and deletes (for CDC behaviour)
+- [x] Daily incremental loads with inserts, updates and deletes (for CDC behaviour)
 - [ ] Load to Snowflake stage and to a Databricks volume
 
 ### Phase 2 — dbt on Snowflake: Data Vault 2.0

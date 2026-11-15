@@ -7,7 +7,6 @@ on:
 
 env:
   PROD_MANIFEST_URL: https://aglivin.github.io/vault-lakehouse-migration/manifest.json
-  LOAD_DATES: 2026-01-01 2026-01-02 2026-01-03 2026-01-04 2026-01-05
 
 jobs:
   checks:
@@ -43,12 +42,6 @@ jobs:
       DBT_PROFILES_DIR: dbt
       DBT_TARGET: snowflake_ci
       DBT_SCHEMA: ci_pr_${{ github.event.pull_request.number }}
-      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-      SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
-      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
-      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -68,22 +61,26 @@ jobs:
       - name: Build one load date at a time
         env:
           MODE: ${{ steps.state.outputs.mode }}
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
         run: |
           set -euo pipefail
           selection=()
           if [ "$MODE" = slim ]; then
             selection=(--select "state:modified+" "1+state:modified+,config.materialized:view" --defer --state "$RUNNER_TEMP/prod-manifest")
           fi
-          read -ra dates <<< "$LOAD_DATES"
-          last=$(( ${#dates[@]} - 1 ))
-          for i in "${!dates[@]}"; do
-            flags=()
-            [ "$i" -eq 0 ] && flags+=(--full-refresh)
-            [ "$i" -lt "$last" ] && flags+=(--exclude-resource-type test)
-            echo "::group::load_date ${dates[$i]}"
-            uv run dbt build "${selection[@]}" "${flags[@]}" --vars "{load_date: '${dates[$i]}'}"
-            echo "::endgroup::"
-          done
+          scripts/build_by_load_date.sh "${selection[@]}"
       - name: Drop PR schemas
         if: always()
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
         run: uv run dbt run-operation drop_pr_schemas

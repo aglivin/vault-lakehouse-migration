@@ -90,9 +90,9 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 ### Phase 3 — Source system change (v1 → v2)
 
-- [ ] Add v2 staging models next to v1
-- [ ] Same-as link between v1 and v2 business keys
-- [ ] New satellites for v2 attributes; old satellites closed, not dropped
+- [x] Add v2 staging models next to v1
+- [x] Same-as link between v1 and v2 business keys
+- [x] New satellites for v2 attributes; old satellites closed, not dropped
 - [ ] Marts unchanged for consumers; reconciliation proves equal totals before and after the switch
 - [ ] Write-up: what changed in each layer and why
 

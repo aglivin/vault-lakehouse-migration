@@ -5,5 +5,5 @@
     src_nk='CUSTOMER_NO',
     src_ldts='LOAD_DATETIME',
     src_source='RECORD_SOURCE',
-    source_model='stg_crm_v1__customers'
+    source_model=['stg_crm_v1__customers', 'stg_crm_v2__accounts']
 ) }}

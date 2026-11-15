@@ -58,6 +58,8 @@ def live_contracts_at_cutover(out: Path) -> dict[str, dict]:
 def test_same_seed_gives_identical_v2_files(out, tmp_path):
     render_v2(build_world(customers=300, seed=7), tmp_path)
     files = list(out.glob("*_v2/*/*.csv"))
+    assert {f.stem for f in files} == set(V2_DAYS)
+    assert {f.stem for f in out.glob("*_v1/*/*.csv")} == {d.isoformat() for d in V1_DATES}
     assert len(files) == sum(len(e) for e in LAYOUT.values()) * len(V2_DAYS)
     for file in files:
         assert file.read_bytes() == (tmp_path / file.relative_to(out)).read_bytes()

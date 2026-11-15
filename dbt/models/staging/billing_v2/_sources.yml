@@ -1,0 +1,15 @@
+sources:
+  - name: billing_v2
+    schema: raw
+    config:
+      loaded_at_field: cast(_load_date as timestamp)
+      freshness:
+        warn_after: {count: 1, period: day}
+    tables:
+      - name: billing_v2__products
+      - name: billing_v2__meter_points
+      - name: billing_v2__agreements
+      - name: billing_v2__documents
+      - name: billing_v2__document_lines
+      - name: billing_v2__settlements
+      - name: billing_v2__key_map

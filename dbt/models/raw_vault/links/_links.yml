@@ -203,3 +203,25 @@ models:
               arguments:
                 to: ref('hub_invoice')
                 field: invoice_hk
+  - name: nhl_contact_crm_v1
+    columns:
+      - name: contact_hk
+        data_tests: [unique, not_null]
+      - name: customer_hk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('hub_customer')
+                field: customer_hk
+  - name: nhl_contact_crm_v2
+    columns:
+      - name: contact_hk
+        data_tests: [unique, not_null]
+      - name: customer_hk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('hub_customer')
+                field: customer_hk

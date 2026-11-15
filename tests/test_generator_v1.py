@@ -77,6 +77,15 @@ def test_net_amount_in_files_matches_expected_totals(world, out):
         assert loaded == totals[(day, "invoiced_net_total")]
 
 
+def test_vat_total_in_expected_totals_sums_vat_lines_only(out, world):
+    lines = read_all(out, "invoice_lines")
+    totals = {(d, m): v for d, m, v in expected_totals(world)}
+    for day in DAYS:
+        loaded = sum(Decimal(r["tax_amount"]) for r in lines if r["load_date"] <= day and r["line_type"] == "vat")
+        assert loaded == totals[(day, "vat_total")]
+        assert loaded == sum(Decimal(r["tax_amount"]) for r in lines if r["load_date"] <= day)
+
+
 def test_vat_line_is_twenty_percent_of_other_lines(out):
     lines = read_all(out, "invoice_lines")
     nets = defaultdict(Decimal)

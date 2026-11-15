@@ -21,12 +21,17 @@ def expected_totals(world: World) -> list[tuple[str, str, Decimal]]:
         customers = {r["customer_no"] for r in world.customers if r["_load_date"] <= day}
         invoices = [r for r in world.invoices if r["_load_date"] <= day]
         net = sum((r["net_amount"] for r in world.invoice_lines if r["_load_date"] <= day), Decimal("0.00"))
+        vat = sum(
+            (r["tax_amount"] for r in world.invoice_lines if r["_load_date"] <= day and r["line_type"] == "vat"),
+            Decimal("0.00"),
+        )
         iso = day.isoformat()
         result += [
             (iso, "customer_count", Decimal(len(customers))),
             (iso, "active_contracts", Decimal(active_contracts(world, day))),
             (iso, "invoice_count", Decimal(len(invoices))),
             (iso, "invoiced_net_total", net),
+            (iso, "vat_total", vat),
         ]
     return result
 

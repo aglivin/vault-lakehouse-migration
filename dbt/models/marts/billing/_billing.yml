@@ -4,12 +4,76 @@ models:
       Billing data product, grain invoice_month and tariff_code. net_amount excludes VAT (the vat line carries net 0).
       vat_amount is the tax_amount of vat lines; vat lines carry the tariff code of their invoice, so VAT is attributed to that tariff.
       kwh sums energy lines only.
+    latest_version: 1
+    config:
+      contract:
+        enforced: true
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: [invoice_month, tariff_code]
     columns:
       - name: invoice_month
+        description: First day of the invoice month.
+        data_type: date
         data_tests: [not_null]
       - name: tariff_code
+        description: Master tariff code, stable across the v1 to v2 cutover.
+        data_type: string
         data_tests: [not_null]
+      - name: commodity
+        description: Commodity of the tariff.
+        data_type: string
+      - name: invoice_count
+        description: Distinct invoices in the month and tariff.
+        data_type: integer
+      - name: kwh
+        description: Energy consumed, from energy lines only.
+        data_type: decimal(18,3)
+      - name: net_amount
+        description: Net revenue, VAT excluded.
+        data_type: decimal(18,2)
+      - name: vat_amount
+        description: VAT charged, from vat lines.
+        data_type: decimal(18,2)
+    versions:
+      - v: 1
+        defined_in: billing__revenue_by_tariff_month
+        config:
+          alias: billing__revenue_by_tariff_month
+  - name: billing__open_receivables
+    description: >-
+      Billing data product, grain one row per invoice with an unpaid balance.
+      gross_amount is net plus VAT. paid_amount sums fct_payment. open_amount is gross minus paid and is always above zero.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: invoice_no
+        description: Master invoice number.
+        data_type: string
+        data_tests: [unique, not_null]
+      - name: contract_no
+        description: Master contract number.
+        data_type: string
+        data_tests: [not_null]
+      - name: customer_no
+        description: Master customer number of the contract.
+        data_type: string
+      - name: invoice_date
+        description: Invoice date.
+        data_type: date
+      - name: gross_amount
+        description: Net plus VAT.
+        data_type: decimal(18,2)
+      - name: paid_amount
+        description: Sum of payments on the invoice.
+        data_type: decimal(18,2)
+      - name: open_amount
+        description: Gross minus paid.
+        data_type: decimal(18,2)
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: false

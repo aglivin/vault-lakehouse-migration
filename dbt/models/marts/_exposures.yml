@@ -1,0 +1,46 @@
+exposures:
+  - name: finance_revenue_dashboard
+    label: Finance revenue dashboard
+    type: dashboard
+    maturity: high
+    description: Monthly revenue by tariff for finance reporting.
+    owner:
+      name: Billing data product team
+    depends_on:
+      - ref('billing__revenue_by_tariff_month')
+  - name: finance_collections_report
+    label: Finance collections report
+    type: analysis
+    maturity: medium
+    description: Open receivables per invoice for the collections team.
+    owner:
+      name: Billing data product team
+    depends_on:
+      - ref('billing__open_receivables')
+  - name: sales_churn_dashboard
+    label: Sales churn dashboard
+    type: dashboard
+    maturity: medium
+    description: Monthly contract starts and terminations for sales.
+    owner:
+      name: Sales data product team
+    depends_on:
+      - ref('sales__contract_churn_month')
+  - name: tax_vat_return
+    label: VAT return workbook
+    type: analysis
+    maturity: high
+    description: VAT per invoice for the periodic VAT return.
+    owner:
+      name: Tax data product team
+    depends_on:
+      - ref('tax__vat_by_invoice')
+  - name: callcentre_fcr_dashboard
+    label: Call-centre first contact resolution dashboard
+    type: dashboard
+    maturity: medium
+    description: First contact resolution rate by month, channel and reason.
+    owner:
+      name: Call-centre data product team
+    depends_on:
+      - ref('callcentre__contacts_fcr')

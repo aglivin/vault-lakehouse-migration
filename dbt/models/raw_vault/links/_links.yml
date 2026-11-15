@@ -181,3 +181,25 @@ models:
               arguments:
                 to: ref('hub_meter')
                 field: meter_hk
+  - name: nhl_payment_billing_v1
+    columns:
+      - name: payment_hk
+        data_tests: [unique, not_null]
+      - name: invoice_hk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('hub_invoice')
+                field: invoice_hk
+  - name: nhl_payment_billing_v2
+    columns:
+      - name: payment_hk
+        data_tests: [unique, not_null]
+      - name: invoice_hk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('hub_invoice')
+                field: invoice_hk

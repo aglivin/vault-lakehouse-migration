@@ -1,3 +1,16 @@
+{% set clustering = none %}
+{% if var('perf_clustering', false) %}
+    {% set clustering = ['tariff_code', 'invoice_date'] %}
+{% endif %}
+
+{{
+    config(
+        cluster_by=clustering,
+        liquid_clustered_by=clustering,
+        event_time='invoice_date'
+    )
+}}
+
 with invoice_master as (
     select
         invoice_hk,

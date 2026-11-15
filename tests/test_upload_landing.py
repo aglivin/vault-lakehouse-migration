@@ -95,3 +95,10 @@ def test_locations_follow_environment(tmp_path, monkeypatch):
     databricks = build_commands("databricks", "2026-01-01", tmp_path)
     assert snowflake[0][4] == "@VDWH_PROD.RAW.LANDING/billing_v1/contracts/"
     assert databricks[0][3] == "dbfs:/Volumes/vdwh_prod/raw/landing/billing_v1/contracts"
+
+
+def test_raw_schema_moves_landing_location(tmp_path):
+    snowflake = build_commands("snowflake", "2026-01-01", make_out(tmp_path), "raw_perf")
+    databricks = build_commands("databricks", "2026-01-01", tmp_path, "raw_perf")
+    assert snowflake[0][4] == "@VDWH_DEV.RAW_PERF.LANDING/billing_v1/contracts/"
+    assert databricks[0][3] == "dbfs:/Volumes/vdwh_dev/raw_perf/landing/billing_v1/contracts"

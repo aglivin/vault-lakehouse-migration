@@ -5,7 +5,7 @@
     {% for name, columns in var('raw_entities').items() %}
         {% set system, entity = name.split('__') %}
         {% if system.endswith('_' ~ version) %}
-        {% set table = database ~ '.raw.' ~ name %}
+        {% set table = database ~ '.' ~ var('raw_schema', 'raw') ~ '.' ~ name %}
         {% do run_query('delete from ' ~ table ~ " where _load_date = '" ~ load_date ~ "'") %}
         {% do run_query(vdwh.copy_into_raw(database, table, columns, system, entity, load_date)) %}
         {% endif %}
@@ -27,7 +27,7 @@
             {{ fields | join(', ') }},
             '{{ load_date }}'::date,
             '{{ system }}'
-        from @{{ database }}.raw.landing/{{ system }}/{{ entity }}/
+        from @{{ database }}.{{ var('raw_schema', 'raw') }}.landing/{{ system }}/{{ entity }}/
     )
     files = ('{{ load_date }}.csv')
     force = true
@@ -40,7 +40,7 @@
             {{ columns | join(', ') }},
             cast('{{ load_date }}' as date) as _load_date,
             '{{ system }}' as _record_source
-        from '/Volumes/{{ database }}/raw/landing/{{ system }}/{{ entity }}/'
+        from '/Volumes/{{ database }}/{{ var('raw_schema', 'raw') }}/landing/{{ system }}/{{ entity }}/'
     )
     fileformat = csv
     files = ('{{ load_date }}.csv')

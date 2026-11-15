@@ -1,6 +1,7 @@
 {% macro create_raw_tables() %}
     {% set database = target.database %}
-    {% do run_query('create schema if not exists ' ~ database ~ '.raw') %}
+    {% set raw_schema = var('raw_schema', 'raw') %}
+    {% do run_query('create schema if not exists ' ~ database ~ '.' ~ raw_schema) %}
     {% do run_query(vdwh.create_landing_area(database)) %}
     {% for name, columns in var('raw_entities').items() %}
         {% set column_list = [] %}
@@ -9,7 +10,7 @@
         {% endfor %}
         {% do column_list.append('_load_date date') %}
         {% do column_list.append('_record_source string') %}
-        {% do run_query('create table if not exists ' ~ database ~ '.raw.' ~ name ~ ' (' ~ column_list | join(', ') ~ ')') %}
+        {% do run_query('create table if not exists ' ~ database ~ '.' ~ raw_schema ~ '.' ~ name ~ ' (' ~ column_list | join(', ') ~ ')') %}
     {% endfor %}
 {% endmacro %}
 
@@ -18,10 +19,10 @@
 {% endmacro %}
 
 {% macro snowflake__create_landing_area(database) %}
-    create stage if not exists {{ database }}.raw.landing
+    create stage if not exists {{ database }}.{{ var('raw_schema', 'raw') }}.landing
     file_format = (type = csv skip_header = 1 field_optionally_enclosed_by = '"')
 {% endmacro %}
 
 {% macro databricks__create_landing_area(database) %}
-    create volume if not exists {{ database }}.raw.landing
+    create volume if not exists {{ database }}.{{ var('raw_schema', 'raw') }}.landing
 {% endmacro %}

@@ -15,6 +15,9 @@ models:
     raw_vault:
       +materialized: incremental
       +schema: raw_vault
+      sats:
+        +meta:
+          apply_source_filter: true
     business_vault:
       +materialized: table
       +schema: business_vault

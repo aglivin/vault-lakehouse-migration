@@ -1,0 +1,7 @@
+sources:
+  - name: crm_v1
+    schema: raw
+    tables:
+      - name: crm_v1__customers
+      - name: crm_v1__customer_phones
+      - name: crm_v1__contacts

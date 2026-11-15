@@ -1,0 +1,10 @@
+sources:
+  - name: billing_v1
+    schema: raw
+    tables:
+      - name: billing_v1__tariffs
+      - name: billing_v1__meters
+      - name: billing_v1__contracts
+      - name: billing_v1__invoices
+      - name: billing_v1__invoice_lines
+      - name: billing_v1__payments

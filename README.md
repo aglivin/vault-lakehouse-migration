@@ -80,7 +80,7 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 ### Phase 2 — dbt on Snowflake: Data Vault 2.0
 
 - [ ] Staging models with hash keys and hashdiffs (`automate_dv.stage`)
-- [ ] Hubs: customer, contract, meter, invoice, tariff
+- [x] Hubs: customer, contract, meter, invoice, tariff
 - [ ] Links: customer–contract, contract–meter, contract–invoice, invoice–tariff
 - [ ] Satellites with history; one multi-active satellite (customer phone numbers)
 - [ ] Effectivity satellite for customer–contract

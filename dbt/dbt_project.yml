@@ -23,6 +23,8 @@ models:
       +schema: marts
 
 vars:
+  hash: SHA
+  load_date: null
   raw_entities:
     crm_v1__customers: [customer_no, first_name, last_name, email, birth_date, street, city, postal_code, segment, updated_at, op]
     crm_v1__customer_phones: [customer_no, phone_type, phone_number, op]

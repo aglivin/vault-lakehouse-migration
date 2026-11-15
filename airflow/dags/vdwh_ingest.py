@@ -26,7 +26,7 @@ def wait_for_idle_transform(*, ti) -> bool:
     catchup=False,
     is_paused_upon_creation=True,
     max_active_runs=1,
-    deadline=run_deadline(timedelta(minutes=15)),
+    deadline=run_deadline(timedelta(minutes=75)),
     default_args={
         "retries": 2,
         "retry_delay": timedelta(minutes=1),

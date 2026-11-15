@@ -15,7 +15,9 @@ The landing files are already in the Snowflake stage and the Databricks volume. 
 
 ## Asset scheduling
 
-`publish_raw_landed` emits an event on `Asset("vdwh/raw_landed")` with the extra `{"load_date": "<ds>"}`. `vdwh_transform` has `max_active_runs=1`; while a run is active, new events wait, and Airflow puts all waiting events into the next run. So an ingest run must not publish while a transform run is queued or running. The sensor `wait_for_idle_transform` (reschedule mode, every 30 seconds) waits until `vdwh_transform` has no queued or running run. With `max_active_runs=1` on `vdwh_ingest`, every event then gets its own `vdwh_transform` run, also in a backfill.
+`publish_raw_landed` emits an event on `Asset("vdwh/raw_landed")` with the extra `{"load_date": "<ds>"}`. `vdwh_transform` has `max_active_runs=1`; while a run is active, new events wait, and Airflow puts all waiting events into the next run. So an ingest run must not publish while a transform run is queued or running. The sensor `wait_for_idle_transform` (reschedule mode, every 30 seconds) waits until `vdwh_transform` has no queued or running run. With `max_active_runs=1` on `vdwh_ingest`, every event then normally gets its own `vdwh_transform` run, also in a backfill.
+
+Do not trigger `vdwh_ingest` manually while a backfill runs. Backfill runs have their own `--max-active-runs`, so a manual ingest run and a backfill run can pass the sensor at the same time, and their events merge.
 
 If two load dates still reach one run, `resolve_load_date` fails and builds nothing. Recovery: clear the `vdwh_ingest` run of each date of the failed run, one date at a time and in order (Clear on that DAG run in the UI; a new run with the same logical date is refused). The load is idempotent, so the rerun adds no raw rows; its event queues a new `vdwh_transform` run.
 
@@ -31,7 +33,7 @@ To build a date, trigger `vdwh_ingest` for it. Do not trigger `vdwh_transform` b
 
 - `on_failure_callback` (`include/vdwh_alerts.py:notify_failure`) on every task of both DAGs. It writes one line: `VDWH ALERT: task failed dag_id=... task_id=... run_id=... try_number=... error=...`. It runs after the last retry (2 retries, 1 minute apart). The line is in the task log; when the task process was killed (heartbeat lost), the dag processor runs the callback and the line is in `logs/dag_processor/<date>/dags-folder/<dag file>.log`.
 - Webhook (Slack incoming webhook or any URL that accepts `{"text": ...}`): off by default. To switch it on, create an Airflow connection and put the full webhook URL in its Host field (for example `airflow connections add vdwh_alert --conn-type http --conn-host https://hooks.slack.com/services/...`) and set `VDWH_ALERT_CONN_ID=<connection id>` in `airflow/.env`. No webhook URL is in the repo.
-- SLA: Airflow 3 removed SLAs. Both DAGs use a Deadline Alert (Airflow 3.1+): reference `DAGRUN_QUEUED_AT`, 15 minutes for `vdwh_ingest` and 60 minutes for `vdwh_transform`. When a run is not finished by then, the triggerer runs `log_missed_deadline`, which writes `VDWH ALERT: deadline missed dag_id=... run_id=... deadline_time=...` to the triggerer log.
+- SLA: Airflow 3 removed SLAs. Both DAGs use a Deadline Alert (Airflow 3.1+): reference `DAGRUN_QUEUED_AT`, 75 minutes for `vdwh_ingest` (the 60-minute transform deadline plus load time, because ingest waits in `wait_for_idle_transform` for the running transform) and 60 minutes for `vdwh_transform`. Backfill runs are all queued when the backfill is created, so in a long backfill the later ingest runs can still miss the deadline and log an alert. When a run is not finished by then, the triggerer runs `log_missed_deadline`, which writes `VDWH ALERT: deadline missed dag_id=... run_id=... deadline_time=...` to the triggerer log.
 
 ## Local run
 
@@ -63,7 +65,7 @@ astro dev run backfill create --dag-id vdwh_ingest \
 
 `--reprocess-behavior completed` is optional: add it to run again dates that already have a successful run. The verification run used the command above without it, because 2026-01-02 and 2026-01-03 had no runs yet.
 
-Each backfill run of `vdwh_ingest` loads its date, waits in `wait_for_idle_transform` until the `vdwh_transform` run of the previous date is done, and then emits one `vdwh/raw_landed` event. So each date gets its own `vdwh_transform` run, in order. Without the sensor, ingest runs (about 20 seconds) finish faster than transform runs (about 4 minutes), and the waiting events of three or more dates merge into one failed run.
+Each backfill run of `vdwh_ingest` loads its date, waits in `wait_for_idle_transform` until the `vdwh_transform` run of the previous date is done, and then emits one `vdwh/raw_landed` event. So each date gets its own `vdwh_transform` run, in order. Without the sensor, ingest runs finish faster than transform runs (in the local run on 2026-11-15, about 20 seconds against about 4 minutes; observed, not a benchmark), and the waiting events of three or more dates merge into one failed run.
 
 The loads are idempotent, so a rerun of a date writes no new rows. A backfill of an old date still leaves the latest state built from that date, so after a backfill run the later dates again in order (here 2026-01-04 and 2026-01-05).
 

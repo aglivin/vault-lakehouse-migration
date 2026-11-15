@@ -48,6 +48,12 @@ def test_transform_has_no_params(dag_bag):
     assert not dag_bag.dags["vdwh_transform"].params
 
 
+def test_ingest_deadline_covers_waiting_for_transform(dag_bag):
+    ingest = dag_bag.dags["vdwh_ingest"].deadline
+    transform = dag_bag.dags["vdwh_transform"].deadline
+    assert ingest[0].interval > transform[0].interval
+
+
 def test_ingest_publishes_raw_landed_after_transform_is_idle(dag_bag):
     dag = dag_bag.dags["vdwh_ingest"]
     publisher = dag.get_task("publish_raw_landed")

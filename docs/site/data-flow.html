@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data flow: Bronze to gold</title>
+<meta name="description" content="Interactive map of the real tables from raw to data products, with five simulator scenarios.">
+<style>
+:root{
+--bg:#f8fafc;--fg:#0f172a;--mut:#475569;--card:#ffffff;--line:#d9e0ea;--acc:#2563eb;--shadow:0 1px 3px rgba(15,23,42,.08),0 8px 24px rgba(15,23,42,.06);
+--raw-f:#f5e6d3;--raw-s:#92400e;--stg-f:#e2e8f0;--stg-s:#64748b;--hub-f:#dbeafe;--hub-s:#2563eb;--link-f:#dcfce7;--link-s:#16a34a;
+--sat-f:#fef9c3;--sat-s:#ca8a04;--bv-f:#e5e7eb;--bv-s:#4b5563;--gold-f:#fde68a;--gold-s:#b45309;--lane:#eef2f7;
+--new:#dcfce7;--newb:#16a34a;--rej:#fee2e2;--rejb:#dc2626;--edge:#94a3b8;--edge-on:#2563eb;--nav:#ffffffe6
+}
+@media(prefers-color-scheme:dark){:root{
+--bg:#0b1220;--fg:#e8edf6;--mut:#a3b0c4;--card:#131c2e;--line:#27344a;--acc:#7db0ff;--shadow:0 1px 3px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+--raw-f:#3a2a1b;--raw-s:#e0a46a;--stg-f:#232e42;--stg-s:#8ea0bb;--hub-f:#15294d;--hub-s:#6aa2ff;--link-f:#10301f;--link-s:#4ade80;
+--sat-f:#3a3210;--sat-s:#facc15;--bv-f:#2a313c;--bv-s:#9aa7ba;--gold-f:#43330c;--gold-s:#fbbf24;--lane:#101a2b;
+--new:#12351f;--newb:#4ade80;--rej:#3d1a1d;--rejb:#f87171;--edge:#4a5a74;--edge-on:#7db0ff;--nav:#0b1220e6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--acc)}
+code{font:15px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--lane);border:1px solid var(--line);border-radius:5px;padding:1px 6px;word-break:break-word}
+nav.top{position:sticky;top:0;z-index:20;background:var(--nav);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:10px 20px;overflow-x:auto;white-space:nowrap}
+nav.top b{margin-right:12px;font-size:17px}
+nav.top a{text-decoration:none;color:var(--mut);padding:6px 14px;border-radius:20px;font-size:16px;transition:background .2s,color .2s}
+nav.top a:hover{background:var(--lane);color:var(--fg)}
+nav.top a.cur{background:var(--acc);color:#fff}
+main{max-width:1280px;margin:0 auto;padding:0 20px 60px}
+header.hero{padding:40px 0 14px}
+h1{font-size:44px;line-height:1.1;margin:0 0 12px;letter-spacing:-.02em}
+.lead{font-size:21px;color:var(--mut);max-width:900px;margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:22px 0 8px;font-size:16px}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend i{width:20px;height:20px;border-radius:5px;border:2px solid}
+.sim{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:20px;margin-top:18px}
+.scn{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+button{font:inherit;cursor:pointer;color:var(--fg);background:var(--card);border:2px solid var(--line);border-radius:12px;padding:9px 16px;transition:background .2s,border-color .2s,transform .15s,box-shadow .2s}
+button:hover{border-color:var(--acc);transform:translateY(-1px)}
+button:focus-visible,.node:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button.scn-b.sel{background:var(--acc);border-color:var(--acc);color:#fff}
+.ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.ctl .go{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.ctl .go:disabled{opacity:.45;cursor:default;transform:none}
+.dots{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.dots button{padding:5px 12px;font-size:15px;border-radius:20px}
+.dots button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.dots button.done{border-color:var(--newb)}
+.mapwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+svg#map{display:block;width:100%;min-width:1000px;height:auto}
+.colh{font:700 13px system-ui,sans-serif;letter-spacing:.08em;fill:var(--mut)}
+.lanebg{fill:var(--lane)}
+.lanet{font:700 22px system-ui,sans-serif;fill:var(--mut);opacity:.35;letter-spacing:.1em}
+.edge{fill:none;stroke:var(--edge);stroke-width:1.4;opacity:.55;transition:stroke .3s,opacity .3s,stroke-width .3s}
+.edge.on{stroke:var(--edge-on);stroke-width:3;opacity:1;stroke-dasharray:7 5;animation:flow 1s linear infinite}
+.edge.dim{opacity:.12}
+@keyframes flow{to{stroke-dashoffset:-12}}
+.node{cursor:pointer;transition:opacity .3s}
+.node rect{stroke-width:2;transition:stroke-width .25s,filter .25s}
+.node text{font:600 13px system-ui,sans-serif;fill:var(--fg);pointer-events:none}
+.node.raw rect{fill:var(--raw-f);stroke:var(--raw-s)}.node.stg rect{fill:var(--stg-f);stroke:var(--stg-s)}
+.node.hub rect{fill:var(--hub-f);stroke:var(--hub-s)}.node.link rect{fill:var(--link-f);stroke:var(--link-s)}
+.node.sat rect{fill:var(--sat-f);stroke:var(--sat-s)}.node.bv rect{fill:var(--bv-f);stroke:var(--bv-s)}
+.node.gold rect{fill:var(--gold-f);stroke:var(--gold-s)}
+.node:hover rect,.node.sel rect{stroke-width:4}
+.node.dim{opacity:.22}
+.node.done rect{stroke-width:3}
+.node.on rect{stroke-width:5;filter:drop-shadow(0 0 7px var(--edge-on))}
+.node.bad rect{stroke:var(--rejb);stroke-width:5;stroke-dasharray:6 4}
+.node.focus-dim{opacity:.25}
+.cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:18px;margin-top:18px}
+.panel{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.panel h3{margin:0 0 6px;font-size:26px;line-height:1.2}
+.panel .stepno{font-size:15px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.panel h4{margin:16px 0 4px;font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
+.panel p{margin:0}
+.panel ul{margin:0;padding-left:20px}
+.panel li{margin:4px 0}
+.badge{display:inline-block;font-size:14px;font-weight:700;padding:2px 10px;border-radius:20px;border:2px solid;vertical-align:middle;margin-right:6px}
+.badge.raw{background:var(--raw-f);border-color:var(--raw-s)}.badge.stg{background:var(--stg-f);border-color:var(--stg-s)}
+.badge.hub{background:var(--hub-f);border-color:var(--hub-s)}.badge.link{background:var(--link-f);border-color:var(--link-s)}
+.badge.sat{background:var(--sat-f);border-color:var(--sat-s)}.badge.bv{background:var(--bv-f);border-color:var(--bv-s)}
+.badge.gold{background:var(--gold-f);border-color:var(--gold-s)}
+.tables{display:grid;gap:14px;align-content:start}
+.tcard{border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow:hidden;animation:pop .35s ease both}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.thead{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:16px;flex-wrap:wrap}
+.thead .cap{color:var(--mut);font-size:14px;margin-left:auto}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mut);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+tr.new td{background:var(--new)}
+tr.new td:first-child{box-shadow:inset 5px 0 var(--newb)}
+tr.ign td{color:var(--mut);text-decoration:line-through;opacity:.7}
+tr.rej td{background:var(--rej)}
+tr.rej td:first-child{box-shadow:inset 5px 0 var(--rejb)}
+.chip{display:inline-block;padding:0 7px;border-radius:6px;font:13px ui-monospace,Menlo,monospace;background:hsl(var(--h) 70% 85%);color:#1e293b}
+.chip.hd{background:transparent;border:2px dashed hsl(var(--h) 55% 45%);color:var(--fg)}
+@media(prefers-color-scheme:dark){.chip{background:hsl(var(--h) 45% 30%);color:#f1f5f9}}
+.null{color:var(--rejb);font-style:italic}
+.key{font-size:15px;color:var(--mut);margin:12px 0 0}
+.key .chip{margin:0 4px}
+.proof{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:34px}
+.proof div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.proof b{display:block;font-size:30px;color:var(--newb);line-height:1.2}
+.proof span{color:var(--mut);font-size:15px}
+.foot{margin-top:30px;color:var(--mut);font-size:16px}
+@media(max-width:900px){.cols{grid-template-columns:1fr}.dots{margin-left:0}}
+@media(max-width:560px){body{font-size:17px}h1{font-size:32px}.lead{font-size:18px}main{padding:0 16px 50px}.sim{padding:14px}nav.top{padding:8px 16px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<nav class="top" aria-label="Pages"><b>vault-lakehouse-migration</b><a href="index.html">Project map</a><a class="cur" href="data-flow.html">Data flow</a><a href="platform.html">Platform</a><a href="../index.html">dbt docs</a><a href="https://github.com/aglivin/vault-lakehouse-migration">GitHub repo</a></nav>
+<main>
+<header class="hero">
+<h1>Bronze to gold, table by table</h1>
+<p class="lead">These are the real dbt models. Pick a scenario and press step: one source change walks through raw, staging, raw vault, business vault and gold. Boxes light up along the path, and the tables show the rows before and after. Click any box to see its file and its real rows.</p>
+<div class="legend" aria-label="Legend">
+<span><i style="background:var(--raw-f);border-color:var(--raw-s)"></i>raw (bronze)</span>
+<span><i style="background:var(--stg-f);border-color:var(--stg-s)"></i>staging</span>
+<span><i style="background:var(--hub-f);border-color:var(--hub-s)"></i>hub</span>
+<span><i style="background:var(--link-f);border-color:var(--link-s)"></i>link / same-as link</span>
+<span><i style="background:var(--sat-f);border-color:var(--sat-s)"></i>satellite</span>
+<span><i style="background:var(--bv-f);border-color:var(--bv-s)"></i>business vault</span>
+<span><i style="background:var(--gold-f);border-color:var(--gold-s)"></i>gold: star schema and data products</span>
+</div>
+</header>
+
+<section class="sim" aria-label="Simulator">
+<div class="scn" id="scn" role="tablist"></div>
+<div class="ctl">
+<button class="go" id="bstep">&#9654; Step</button>
+<button id="breset">&#9198; Reset</button>
+<button id="bauto">&#9205; Auto</button>
+<div class="dots" id="dots"></div>
+</div>
+<div class="mapwrap"><svg id="map" viewBox="0 0 1240 610" role="img" aria-label="Relationship schema of the real tables from raw to data products"></svg></div>
+<div class="cols">
+<div class="panel" id="panel" aria-live="polite"></div>
+<div class="tables" id="tables"></div>
+</div>
+<p class="key">Hash keys are shortened to 10 characters. Same colour = same key. <span class="chip">hash key</span><span class="chip hd">hashdiff</span> Green row = inserted. Struck-through row = ignored. Red row = rejected.</p>
+</section>
+
+<section class="proof" aria-label="Results">
+<div><b>4421</b><span>invoices in the mart, equal on Snowflake and Databricks</span></div>
+<div><b>461626.22</b><span>net total, equal to the expected total</span></div>
+<div><b>226</b><span>dbt tests guard the layers</span></div>
+<div><b>0</b><span>differences in 35 compared tables</span></div>
+</section>
+<p class="foot">Sample rows are synthetic. The customer C000575, the contract K0000575 and the invoice INV00000575 are real rows of the generated data; C900001 is an invented example. Details: <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/source-change.md">docs/source-change.md</a> and <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/loading.md">docs/loading.md</a>.</p>
+</main>
+<script>
+(function(){
+var GH='https://github.com/aglivin/vault-lakehouse-migration/blob/main/';
+var X0=10,DX=178,W=150,H=40,P=48,LANES=[{n:'CUSTOMER',y:40,r:3},{n:'CONTRACT',y:220,r:3},{n:'INVOICE',y:398,r:4}];
+var COLS=['RAW','STAGING','HUBS AND LINKS','SATELLITES','BUSINESS VAULT','GOLD: STAR SCHEMA','DATA PRODUCTS'];
+var KIND={raw:'raw',stg:'staging',hub:'hub',link:'link',sat:'satellite',bv:'business vault',gold:'gold'};
+var N=[
+['raw_cust','crm_v1__customers','raw',0,0,0],['raw_acc','crm_v2__accounts','raw',0,0,1],['raw_ckm','crm_v2__key_map','raw',0,0,2],
+['stg_cust','stg_crm_v1__customers','stg',1,0,0],['stg_acc','stg_crm_v2__accounts','stg',1,0,1],['stg_ckm','stg_crm_v2__key_map','stg',1,0,2],
+['hub_customer','hub_customer','hub',2,0,0],['sal_customer','sal_customer','link',2,0,2],
+['sat_c1','sat_customer_details_crm_v1','sat',3,0,0],['sat_c2','sat_customer_details_crm_v2','sat',3,0,1],
+['bv_customer','bv_customer_master','bv',4,0,1],['dim_customer','dim_customer','gold',5,0,1],
+['raw_con','billing_v1__contracts','raw',0,1,0],['raw_bkm','billing_v2__key_map','raw',0,1,1],
+['stg_con','stg_billing_v1__contracts','stg',1,1,0],['stg_bkm','stg_billing_v2__key_map','stg',1,1,1],
+['hub_contract','hub_contract','hub',2,1,0],['link_cc','link_customer_contract','link',2,1,1],['sal_contract','sal_contract','link',2,1,2],
+['sat_con','sat_contract_details_billing_v1','sat',3,1,0],['sts','sts_contract','sat',3,1,1],['eff','eff_sat_customer_contract','sat',3,1,2],
+['bv_contract','bv_contract_master','bv',4,1,1],['dim_contract','dim_contract','gold',5,1,1],
+['raw_inv','billing_v1__invoices','raw',0,2,0],['raw_line','billing_v1__invoice_lines','raw',0,2,1],['raw_doc','billing_v2__documents','raw',0,2,2],['raw_dline','billing_v2__document_lines','raw',0,2,3],
+['stg_inv','stg_billing_v1__invoices','stg',1,2,0],['stg_line','stg_billing_v1__invoice_lines','stg',1,2,1],['stg_doc','stg_billing_v2__documents','stg',1,2,2],['stg_dline','stg_billing_v2__document_lines','stg',1,2,3],
+['hub_invoice','hub_invoice','hub',2,2,0],['link_ci','link_contract_invoice','link',2,2,1],['sal_invoice','sal_invoice','link',2,2,3],
+['sat_il1','sat_invoice_line_billing_v1','sat',3,2,1],['sat_il2','sat_invoice_line_billing_v2','sat',3,2,3],
+['bv_invoice','bv_invoice_master','bv',4,2,2],['fct','fct_invoice_line','gold',5,2,1],
+['rev','billing__revenue_by_tariff_month','gold',6,2,0],['vat','tax__vat_by_invoice','gold',6,2,2]
+];
+var E=[
+'raw_cust>stg_cust','raw_acc>stg_acc','raw_ckm>stg_ckm','stg_cust>hub_customer','stg_acc>hub_customer','stg_cust>sat_c1','stg_acc>sat_c2','stg_ckm>sal_customer',
+'hub_customer>bv_customer','sal_customer>bv_customer','bv_customer>dim_customer','sat_c1>dim_customer','sat_c2>dim_customer',
+'raw_con>stg_con','raw_bkm>stg_bkm','stg_con>hub_contract','stg_con>link_cc','stg_con>sat_con','stg_con>sts','stg_con>eff','stg_bkm>sal_contract','stg_bkm>sal_invoice',
+'hub_contract>bv_contract','sal_contract>bv_contract','bv_contract>dim_contract','sts>dim_contract',
+'raw_inv>stg_inv','raw_line>stg_line','raw_doc>stg_doc','raw_dline>stg_dline','stg_inv>hub_invoice','stg_doc>hub_invoice','stg_inv>link_ci','stg_doc>link_ci',
+'stg_line>sat_il1','stg_dline>sat_il2','hub_invoice>bv_invoice','sal_invoice>bv_invoice','bv_invoice>fct','sat_il1>fct','sat_il2>fct','link_ci>fct','fct>rev','fct>vat'
+];
+var NM={},ND={};
+N.forEach(function(n){NM[n[0]]=n;ND[n[0]]={id:n[0],label:n[1],kind:n[2],x:X0+n[3]*DX,y:LANES[n[4]].y+n[5]*P};});
+
+var INFO={
+raw_cust:'Copy of the CRM v1 customer file. One row per change, with op I or U, _load_date and _record_source.',
+raw_acc:'Copy of the CRM v2 account file. The customer key is a uuid.',
+raw_ckm:'CRM v2 key map: which v2 uuid is which v1 customer number.',
+stg_cust:'View. Trims and upper-cases the key, then computes CUSTOMER_HK and the hashdiff of the attributes.',
+stg_acc:'View. Renames account_uuid to CUSTOMER_NO and hashes it like any other key.',
+stg_ckm:'View. Computes the hash key of both sides and SAL_CUSTOMER_HK.',
+hub_customer:'Hub: one row per business key and source. Inserts only keys it has not seen.',
+sal_customer:'Same-as link: one row per pair of v1 key and v2 key.',
+sat_c1:'Satellite: history of customer attributes from CRM v1. A new row only when the hashdiff changes.',
+sat_c2:'Satellite: history of customer attributes from CRM v2.',
+bv_customer:'Master table: maps every customer hash key to one master key (the v1 key when a pair exists).',
+dim_customer:'Customer dimension with history (SCD2): valid_from, valid_to and is_current per version.',
+raw_con:'Copy of the billing v1 contract file, with op I, U or D.',
+raw_bkm:'Billing v2 key map: v1 key to v2 key for contracts and invoices.',
+stg_con:'View. Hash keys for contract, customer and customer-contract link, hashdiff, and EFF_END_DATE (set to the load date when op is D).',
+stg_bkm:'View. Hash keys for both sides of every contract and invoice pair.',
+hub_contract:'Hub: one row per contract number and source.',
+link_cc:'Link: which customer owns which contract.',
+sal_contract:'Same-as link: contract K key to the v2 agreement key.',
+sat_con:'Satellite: contract attributes (tariff, meter, dates, status) from billing v1.',
+sts:'Status satellite: one row per status event of a contract (I, U or D). A delete is a row, never a physical delete.',
+eff:'Effectivity satellite: start and end date of the customer-contract relation.',
+bv_contract:'Master table for contracts, resolves v1 and v2 keys to one key.',
+dim_contract:'Contract dimension for the star schema.',
+raw_inv:'Copy of the billing v1 invoice header file.',raw_line:'Copy of the billing v1 invoice line file.',
+raw_doc:'Copy of the billing v2 document (invoice header) file.',raw_dline:'Copy of the billing v2 document line file.',
+stg_inv:'View. Hash keys and hashdiff for invoice headers.',stg_line:'View. Hash key of the invoice and hashdiff per invoice line.',
+stg_doc:'View. Same as the v1 header view, for v2 documents.',stg_dline:'View. Same as the v1 line view, for v2 document lines.',
+hub_invoice:'Hub: one row per invoice or document number and source. Holds v1 and v2 keys side by side.',
+link_ci:'Link: which invoice belongs to which contract.',
+sal_invoice:'Same-as link: v1 invoice key to the v2 document key.',
+sat_il1:'Satellite: invoice lines from billing v1, one row per line.',
+sat_il2:'Satellite: invoice lines from billing v2, one row per line.',
+bv_invoice:'Master table for invoices: both keys of a pair map to the v1 invoice number.',
+fct:'Fact table: one row per invoice line, built on the master key, so a pair is counted once.',
+rev:'Data product: revenue by tariff and month.',
+vat:'Data product: VAT by invoice.'
+};
+function pathOf(id){
+var n=ND[id],l=n.label,m;
+if(n.kind==='raw'){m=l.match(/^(crm_v\d|billing_v\d)/);return 'dbt/models/staging/'+m[1]+'/_sources.yml';}
+if(n.kind==='stg'){m=l.match(/^stg_(crm_v\d|billing_v\d)/);return 'dbt/models/staging/'+m[1]+'/'+l+'.sql';}
+if(n.kind==='hub')return 'dbt/models/raw_vault/hubs/'+l+'.sql';
+if(n.kind==='link')return 'dbt/models/raw_vault/links/'+l+'.sql';
+if(n.kind==='sat')return 'dbt/models/raw_vault/sats/'+l+'.sql';
+if(n.kind==='bv')return 'dbt/models/business_vault/'+l+'.sql';
+if(id==='rev')return 'dbt/models/marts/billing/'+l+'.sql';
+if(id==='vat')return 'dbt/models/marts/tax/'+l+'.sql';
+return 'dbt/models/marts/core/'+l+'.sql';
+}
+function fileLink(p){return '<a href="'+GH+p+'"><code>'+p+'</code></a>';}
+
+var C='48CB318752',CV2='7FFF3A66DE',SAL='C5D0B8FB15',HD1='544B508093',HD2='85C012F573',HDV2='3794B565A8';
+var KC='32AF0C57F0',KV2='344F78586E',KSAL='CB42B4CB41',CCH='3927A3ECFC',IV1='4EB9159556',IV2='74D770E5E7',ISAL='FDB54AF00B';
+var RH='Rohrbach in Oberösterreich',FI='Fischamend';
+function R(s){return {s:s,c:Array.prototype.slice.call(arguments,1)};}
+function T(n,title,cols,rows,cap){return {n:n,title:title,cols:cols,rows:rows,cap:cap||''};}
+var h=function(x){return '#'+x;},d=function(x){return '~'+x;};
+
+var RAWC=['customer_no','city','op','_load_date'];
+var STGC=['customer_no','CUSTOMER_HK','HASHDIFF','LOAD_DATETIME'];
+var HUBC=['CUSTOMER_HK','CUSTOMER_NO','LOAD_DATETIME','RECORD_SOURCE'];
+var SATC=['CUSTOMER_HK','HASHDIFF','CITY','LOAD_DATETIME'];
+var DIMC=['customer_no','valid_from','city','valid_to','is_current'];
+var CONRAW=['contract_no','customer_no','start_date','op','_load_date'];
+var CONHUB=['CONTRACT_HK','CONTRACT_NO','LOAD_DATETIME','RECORD_SOURCE'];
+var STSC=['CONTRACT_HK','status','LOAD_DATETIME'];
+var EFFC=['CUSTOMER_CONTRACT_HK','EFF_START_DATE','EFF_END_DATE','LOAD_DATETIME'];
+var BVC=['customer_hk','master_customer_hk','master_customer_no'];
+var FCTC=['invoice_no','line_no','contract_no','line_type','net_amount'];
+var FCT575=[R('old','INV00000575','1','K0000575','energy','112.0'),R('old','INV00000575','2','K0000575','base_fee','4.9'),R('old','INV00000575','3','K0000575','energy_tax','5.9'),R('old','INV00000575','4','K0000575','vat','0.0')];
+
+var SC=[];
+
+SC.push({id:'new',btn:'a. New customer',title:'A new customer arrives',
+note:'The key C900001 is an invented example. Its hash keys are illustrative.',
+steps:[
+{t:'Bronze',n:['raw_cust'],what:'A new row lands in the raw table with its _load_date and _record_source. Raw copies the file and cleans nothing.',why:'Raw keeps the source as it came, so any later layer can be rebuilt.',files:['dbt/macros/raw/load_raw.sql'],test:'',
+ tabs:[T('raw_cust','raw.crm_v1__customers',RAWC,[R('new','C900001','Wien','I','2026-01-04')])]},
+{t:'Staging',n:['stg_cust'],what:'The view computes CUSTOMER_HK from the trimmed, upper-cased key and a hashdiff from the attributes.',why:'The same key always gives the same hash key, on Snowflake and on Databricks.',files:['dbt/models/staging/crm_v1/stg_crm_v1__customers.sql','dbt/macros/staging/stage_raw.sql'],test:'',
+ tabs:[T('stg_cust','stg_crm_v1__customers',STGC,[R('new','C900001',h('A3F1D20C77'),d('5E10B94A31'),'2026-01-04')])]},
+{t:'Raw vault',n:['hub_customer','sat_c1'],what:'The hash key is new, so the hub gets a row. The satellite has no earlier row for it, so it gets its first row too.',why:'The hub only inserts keys it has not seen. The satellite only inserts a row when the hashdiff differs from the last one.',files:['dbt/models/raw_vault/hubs/hub_customer.sql','dbt/models/raw_vault/sats/sat_customer_details_crm_v1.sql'],test:'unique and not_null on customer_hk in dbt/models/raw_vault/hubs/_hubs.yml',
+ tabs:[T('hub_customer','hub_customer',HUBC,[R('old',h(C),'C000575','2026-01-01','crm_v1'),R('new',h('A3F1D20C77'),'C900001','2026-01-04','crm_v1')]),
+ T('sat_c1','sat_customer_details_crm_v1',SATC,[R('old',h(C),d(HD1),FI,'2026-01-01'),R('new',h('A3F1D20C77'),d('5E10B94A31'),'Wien','2026-01-04')])]},
+{t:'Business vault',n:['bv_customer'],what:'A key without a v2 pair becomes its own master key.',why:'Every consumer reads the master key, so unpaired keys must survive.',files:['dbt/models/business_vault/bv_customer_master.sql'],test:'dbt/tests/assert_unmapped_keys_survive.sql',
+ tabs:[T('bv_customer','bv_customer_master',BVC,[R('new',h('A3F1D20C77'),h('A3F1D20C77'),'C900001')])]},
+{t:'Gold',n:['dim_customer'],what:'dim_customer builds the version history from the satellite rows. The new customer gets one current version.',why:'The dimension is the only place where analysts read customer attributes.',files:['dbt/models/marts/core/dim_customer.sql'],test:'dbt/tests/assert_dim_customer_intervals_do_not_overlap.sql',
+ tabs:[T('dim_customer','dim_customer',DIMC,[R('new','C900001','2026-01-04','Wien','9999-12-31','true')])]}
+],en:'A new business key gets a new hash key, so the hub, the satellite and the dimension each add one row.'});
+
+SC.push({id:'move',btn:'b. Address change',title:'A customer changes address (real rows of C000575)',
+steps:[
+{t:'Bronze',n:['raw_cust'],what:'On 2026-01-03 a row with op U and the new address arrives. The old row stays.',why:'Raw is append-only per load date.',files:['dbt/macros/raw/load_raw.sql'],test:'',
+ tabs:[T('raw_cust','raw.crm_v1__customers',RAWC,[R('old','C000575',FI,'I','2026-01-01'),R('new','C000575',RH,'U','2026-01-03')])]},
+{t:'Staging',n:['stg_cust'],what:'CUSTOMER_HK is the same. The hashdiff is different, because the city is part of it.',why:'The hash key identifies the customer. The hashdiff detects a change of attributes.',files:['dbt/models/staging/crm_v1/stg_crm_v1__customers.sql'],test:'',
+ tabs:[T('stg_cust','stg_crm_v1__customers',STGC,[R('old','C000575',h(C),d(HD1),'2026-01-01'),R('new','C000575',h(C),d(HD2),'2026-01-03')])]},
+{t:'Raw vault',n:['hub_customer','sat_c1'],what:'The hub does not change: the key is known. The satellite gets a new row. The old row stays.',why:'Nothing is updated or deleted. History is the set of rows.',files:['dbt/models/raw_vault/hubs/hub_customer.sql','dbt/models/raw_vault/sats/sat_customer_details_crm_v1.sql'],test:'unique and not_null on customer_hk in dbt/models/raw_vault/hubs/_hubs.yml',
+ tabs:[T('hub_customer','hub_customer',HUBC,[R('old',h(C),'C000575','2026-01-01','crm_v1'),R('ign',h(C),'C000575','2026-01-03','crm_v1')],'second row not inserted: key exists'),
+ T('sat_c1','sat_customer_details_crm_v1',SATC,[R('old',h(C),d(HD1),FI,'2026-01-01'),R('new',h(C),d(HD2),RH,'2026-01-03')])]},
+{t:'Business vault',n:['bv_customer'],what:'The master row does not change. The key still maps to itself.',why:'Only keys change the master table, never attributes.',files:['dbt/models/business_vault/bv_customer_master.sql'],test:'',
+ tabs:[T('bv_customer','bv_customer_master',BVC,[R('old',h(C),h(C),'C000575')])]},
+{t:'Gold',n:['dim_customer'],what:'dim_customer closes the first version on 2026-01-03 and opens a second one, which is current.',why:'The dimension reads both satellites through the master key and keeps one version per change.',files:['dbt/models/marts/core/dim_customer.sql'],test:'dbt/tests/assert_dim_customer_has_history.sql and dbt/tests/assert_dim_customer_intervals_do_not_overlap.sql',
+ tabs:[T('dim_customer','dim_customer',DIMC,[R('old','C000575','2026-01-01',FI,'2026-01-03','false'),R('new','C000575','2026-01-03',RH,'9999-12-31','true')])]}
+],en:'The key is unchanged, so the hub stays; the changed hashdiff adds a satellite row and a new dimension version.'});
+
+SC.push({id:'rerun',btn:'c. Same file twice',title:'The same load date runs twice (real date 2026-01-03)',
+steps:[
+{t:'Bronze',n:['raw_cust'],what:'load_raw deletes the rows of this _load_date and copies the file again. The raw row count is the same as before.',why:'A rerun replaces one load date and never doubles it.',files:['dbt/macros/raw/load_raw.sql'],test:'',
+ tabs:[T('raw_cust','raw.crm_v1__customers',RAWC,[R('old','C000575',FI,'I','2026-01-01'),R('old','C000575',RH,'U','2026-01-03')],'same rows after the reload')]},
+{t:'Staging',n:['stg_cust'],what:'The view gives the same rows with the same hashes.',why:'Hashes depend only on the data, not on the time of the run.',files:['dbt/models/staging/crm_v1/stg_crm_v1__customers.sql'],test:'',
+ tabs:[T('stg_cust','stg_crm_v1__customers',STGC,[R('old','C000575',h(C),d(HD2),'2026-01-03')])]},
+{t:'Raw vault',n:['hub_customer','sat_c1'],what:'Every hash key is already in the hub. Every hashdiff is already the latest one in the satellite. No row is added.',why:'Hubs and satellites insert only what is new, so loads are idempotent.',files:['dbt/macros/raw_vault/skip_loaded_load_dates.sql','dbt/models/raw_vault/hubs/hub_customer.sql','scripts/rerun_check.sh'],test:'scripts/rerun_check.sh compares vault row counts before and after the reruns',
+ tabs:[T('hub_customer','hub_customer',HUBC,[R('old',h(C),'C000575','2026-01-01','crm_v1'),R('ign',h(C),'C000575','2026-01-03','crm_v1')],'nothing inserted'),
+ T('sat_c1','sat_customer_details_crm_v1',SATC,[R('old',h(C),d(HD1),FI,'2026-01-01'),R('old',h(C),d(HD2),RH,'2026-01-03'),R('ign',h(C),d(HD2),RH,'2026-01-03')],'nothing inserted')]},
+{t:'Gold',n:['dim_customer'],what:'The dimension is rebuilt from the same satellite rows and shows the same two versions.',why:'Gold is a pure function of the vault, so equal vault rows give equal gold rows.',files:['dbt/models/marts/core/dim_customer.sql'],test:'dbt/tests/assert_dim_customer_intervals_do_not_overlap.sql',
+ tabs:[T('dim_customer','dim_customer',DIMC,[R('old','C000575','2026-01-01',FI,'2026-01-03','false'),R('old','C000575','2026-01-03',RH,'9999-12-31','true')])]}
+],en:'Reruns are idempotent: raw is reloaded per load date, and the vault inserts only keys and hashdiffs it has not seen.'});
+
+SC.push({id:'redel',btn:'d. Deleted, then re-created',title:'A contract is deleted, then created again (real rows of K0001103)',
+steps:[
+{t:'Bronze',n:['raw_con'],what:'Three loads: I on 2026-01-01, D on 2026-01-02, I on 2026-01-03 with a new start date.',why:'The source says "deleted" with op D. Raw stores it as a normal row.',files:['dbt/macros/raw/load_raw.sql'],test:'',
+ tabs:[T('raw_con','raw.billing_v1__contracts',CONRAW,[R('old','K0001103','C001103','2026-01-01','I','2026-01-01'),R('new','K0001103','C001103','2026-01-01','D','2026-01-02'),R('new','K0001103','C001103','2026-01-03','I','2026-01-03')])]},
+{t:'Staging',n:['stg_con'],what:'The hash keys are the same on all three rows. The third row has another start date, so another hashdiff. For op D the view sets EFF_END_DATE to the load date.',why:'op is not part of the hashdiff, so a delete does not look like a change of attributes.',files:['dbt/models/staging/billing_v1/stg_billing_v1__contracts.sql'],test:'',
+ tabs:[]},
+{t:'Raw vault',n:['hub_contract','sat_con','sts','eff'],what:'The hub has one row. sts_contract has three rows: I, D, I. The satellite adds a row only on 2026-01-03. The effectivity satellite closes the relation and opens it again.',why:'A delete is a status event. Nothing is removed, so the full story stays.',files:['dbt/models/raw_vault/sats/sts_contract.sql','dbt/models/raw_vault/sats/eff_sat_customer_contract.sql'],test:'dbt/tests/assert_delete_then_reinsert.sql',
+ tabs:[T('hub_contract','hub_contract',CONHUB,[R('new',h('B427DD3282'),'K0001103','2026-01-01','billing_v1')]),
+ T('sts','sts_contract',STSC,[R('new',h('B427DD3282'),'I','2026-01-01'),R('new',h('B427DD3282'),'D','2026-01-02'),R('new',h('B427DD3282'),'I','2026-01-03')]),
+ T('sat_con','sat_contract_details_billing_v1',['CONTRACT_HK','HASHDIFF','START_DATE','LOAD_DATETIME'],[R('new',h('B427DD3282'),d('4455302399'),'2026-01-01','2026-01-01'),R('ign',h('B427DD3282'),d('4455302399'),'2026-01-01','2026-01-02'),R('new',h('B427DD3282'),d('C009429327'),'2026-01-03','2026-01-03')]),
+ T('eff','eff_sat_customer_contract',EFFC,[R('new',h('D212842042'),'2026-01-01','9999-12-31','2026-01-01'),R('new',h('D212842042'),'2026-01-01','2026-01-02','2026-01-02'),R('new',h('D212842042'),'2026-01-03','9999-12-31','2026-01-03')])]},
+{t:'Gold',n:['bv_contract','dim_contract','bv_invoice','fct'],what:'Facts survive a delete. Contract K0000038 was deleted on 2026-01-03, and its invoice INV00000038 is still in the fact table.',why:'The fact reads invoices through the master key, not through the contract status.',files:['dbt/models/marts/core/fct_invoice_line.sql'],test:'dbt/tests/assert_unmapped_keys_survive.sql',
+ tabs:[T('fct','fct_invoice_line (contract K0000038, deleted)',FCTC,[R('old','INV00000038','1','K0000038','energy','268.7'),R('old','INV00000038','2','K0000038','base_fee','5.9'),R('old','INV00000038','3','K0000038','energy_tax','12.8'),R('old','INV00000038','4','K0000038','vat','0.0')],'invoices stay')]}
+],en:'A delete followed by a re-create gives a D row and then an I row for the same hash key; nothing is overwritten.'});
+
+SC.push({id:'v2',btn:'e. v2 system arrives',title:'The v2 systems arrive with new keys (C000575, K0000575, INV00000575)',
+steps:[
+{t:'Bronze',n:['raw_acc','raw_ckm','raw_bkm','raw_doc','raw_dline'],what:'On 2026-01-04 the v2 files land: the account with a uuid, the document lines, and two key maps that pair v1 keys with v2 keys.',why:'The v2 systems use other keys for the same customers, contracts and invoices.',files:['dbt/macros/raw/load_raw.sql','dbt/models/staging/crm_v2/_sources.yml','dbt/models/staging/billing_v2/_sources.yml'],test:'',
+ tabs:[T('raw_ckm','raw.crm_v2__key_map',['entity','v1_key','v2_key','_load_date'],[R('new','customer','C000575','4737f55e-…','2026-01-04')]),
+ T('raw_bkm','raw.billing_v2__key_map',['entity','v1_key','v2_key','_load_date'],[R('new','contract','K0000575','AGR-0000559','2026-01-04'),R('new','invoice','INV00000575','DOC-000000559','2026-01-04')]),
+ T('raw_dline','raw.billing_v2__document_lines',['document_id','position','charge_type','amount_net','vat_amount','_load_date'],[R('new','DOC-000000559','1','energy','112.00','0.00','2026-01-04'),R('new','DOC-000000559','2','base_fee','4.90','0.00','2026-01-04'),R('new','DOC-000000559','3','energy_tax','5.90','0.00','2026-01-04'),R('new','DOC-000000559','4','vat','0.00','24.56','2026-01-04')])]},
+{t:'Staging',n:['stg_acc','stg_ckm','stg_bkm','stg_doc','stg_dline'],what:'The views rename the v2 keys to the same column names as v1. The key map views hash both sides of every pair and compute the same-as link key.',why:'After renaming, v2 flows through the same macros as v1.',files:['dbt/models/staging/crm_v2/stg_crm_v2__accounts.sql','dbt/models/staging/crm_v2/stg_crm_v2__key_map.sql','dbt/models/staging/billing_v2/stg_billing_v2__key_map.sql'],test:'',
+ tabs:[]},
+{t:'Raw vault',n:['hub_customer','sat_c2','sal_customer','hub_invoice','link_ci','sat_il2','sal_invoice','sal_contract'],what:'The v2 keys get new rows in the same hubs and the first rows in the v2 satellites. Same-as links store each v1 and v2 pair. The v1 rows stay as they are.',why:'The vault never rewrites keys. It adds the pairing as new rows.',files:['dbt/models/raw_vault/links/sal_customer.sql','dbt/models/raw_vault/links/sal_invoice.sql','dbt/models/raw_vault/links/sal_contract.sql','dbt/models/raw_vault/sats/sat_invoice_line_billing_v2.sql'],test:'dbt/tests/assert_v1_satellites_closed_after_cutover.sql',
+ tabs:[T('hub_customer','hub_customer',HUBC,[R('old',h(C),'C000575','2026-01-01','crm_v1'),R('new',h(CV2),'4737f55e-…','2026-01-04','crm_v2')]),
+ T('sal_customer','sal_customer',['SAL_CUSTOMER_HK','CUSTOMER_HK','CUSTOMER_V2_HK','LOAD_DATETIME'],[R('new',h(SAL),h(C),h(CV2),'2026-01-04')]),
+ T('sal_contract','sal_contract',['SAL_CONTRACT_HK','CONTRACT_HK','CONTRACT_V2_HK','LOAD_DATETIME'],[R('new',h(KSAL),h(KC),h(KV2),'2026-01-04')]),
+ T('sal_invoice','sal_invoice',['SAL_INVOICE_HK','INVOICE_HK','INVOICE_V2_HK','LOAD_DATETIME'],[R('new',h(ISAL),h(IV1),h(IV2),'2026-01-04')])]},
+{t:'Business vault',n:['bv_customer','bv_invoice','bv_contract'],what:'The master tables map both keys of every pair to the v1 key. The customer, the contract and the invoice each have one master key.',why:'Gold reads the master key, so one real-world object is one row, whichever system it came from.',files:['dbt/models/business_vault/bv_customer_master.sql','dbt/models/business_vault/bv_invoice_master.sql'],test:'dbt/tests/assert_unmapped_keys_survive.sql',
+ tabs:[T('bv_customer','bv_customer_master',BVC,[R('old',h(C),h(C),'C000575'),R('new',h(CV2),h(C),'C000575')]),
+ T('bv_invoice','bv_invoice_master',['invoice_hk','master_invoice_hk','master_invoice_no'],[R('old',h(IV1),h(IV1),'INV00000575'),R('new',h(IV2),h(IV1),'INV00000575')])]},
+{t:'Gold',n:['dim_customer','fct','rev','vat'],what:'The mart does not change. INV00000575 still has four lines, the revenue and VAT products keep their totals, and the customer keeps its two versions.',why:'The fact reads the master invoice key, so the v2 copy of an invoice is not counted a second time.',files:['dbt/models/marts/core/fct_invoice_line.sql','dbt/models/marts/billing/billing__revenue_by_tariff_month.sql'],test:'dbt/tests/assert_mart_matches_expected_totals.sql (4421 invoices, net total 461626.22)',
+ tabs:[T('fct','fct_invoice_line (after the v2 load)',FCTC,FCT575,'same 4 lines as before'),
+ T('dim_customer','dim_customer',DIMC,[R('old','C000575','2026-01-01',FI,'2026-01-03','false'),R('old','C000575','2026-01-03',RH,'9999-12-31','true')],'same 2 versions as before')]}
+],en:'The v2 key becomes a new hub row, a same-as link ties it to the v1 key, and the master table resolves both to one key, so the mart stays unchanged.'});
+
+var STORY={
+raw_cust:{t:'raw.crm_v1__customers',c:RAWC,r:[R('old','C000575',FI,'I','2026-01-01'),R('old','C000575',RH,'U','2026-01-03')]},
+raw_acc:{t:'raw.crm_v2__accounts',c:['account_uuid','town','op','_load_date'],r:[R('old','4737f55e-…',RH,'I','2026-01-04')]},
+raw_ckm:{t:'raw.crm_v2__key_map',c:['entity','v1_key','v2_key','_load_date'],r:[R('old','customer','C000575','4737f55e-…','2026-01-04')]},
+raw_con:{t:'raw.billing_v1__contracts',c:['contract_no','customer_no','tariff_code','start_date','status','op','_load_date'],r:[R('old','K0000575','C000575','EL-BASIC','2026-01-01','active','I','2026-01-01')]},
+raw_bkm:{t:'raw.billing_v2__key_map',c:['entity','v1_key','v2_key','_load_date'],r:[R('old','contract','K0000575','AGR-0000559','2026-01-04'),R('old','invoice','INV00000575','DOC-000000559','2026-01-04')]},
+raw_inv:{t:'raw.billing_v1__invoices',c:['invoice_no','contract_no','invoice_date','period_from','period_to','_load_date'],r:[R('old','INV00000575','K0000575','2026-01-01','2025-12-02','2025-12-31','2026-01-01')]},
+raw_line:{t:'raw.billing_v1__invoice_lines',c:['invoice_no','line_no','line_type','kwh','net_amount','tax_amount'],r:[R('old','INV00000575','1','energy','393','112.00','0.00'),R('old','INV00000575','2','base_fee','','4.90','0.00'),R('old','INV00000575','3','energy_tax','393','5.90','0.00'),R('old','INV00000575','4','vat','','0.00','24.56')]},
+raw_dline:{t:'raw.billing_v2__document_lines',c:['document_id','position','charge_type','amount_net','vat_amount'],r:[R('old','DOC-000000559','1','energy','112.00','0.00'),R('old','DOC-000000559','4','vat','0.00','24.56')]},
+stg_cust:{t:'stg_crm_v1__customers',c:STGC,r:[R('old','C000575',h(C),d(HD1),'2026-01-01'),R('old','C000575',h(C),d(HD2),'2026-01-03')]},
+stg_con:{t:'stg_billing_v1__contracts',c:['contract_no','customer_hk','contract_hk','op','eff_end_date','load_datetime'],r:[R('old','K0000575',h(C),h(KC),'I','9999-12-31','2026-01-01')]},
+hub_customer:{t:'hub_customer',c:HUBC,r:[R('old',h(CV2),'4737f55e-…','2026-01-04','crm_v2'),R('old',h(C),'C000575','2026-01-01','crm_v1')]},
+hub_contract:{t:'hub_contract',c:CONHUB,r:[R('old',h(KC),'K0000575','2026-01-01','billing_v1')]},
+hub_invoice:{t:'hub_invoice',c:['INVOICE_HK','INVOICE_NO','LOAD_DATETIME','RECORD_SOURCE'],r:[R('old',h(IV1),'INV00000575','2026-01-01','billing_v1'),R('old',h(IV2),'DOC-000000559','2026-01-04','billing_v2')]},
+link_cc:{t:'link_customer_contract',c:['CUSTOMER_CONTRACT_HK','CUSTOMER_HK','CONTRACT_HK','LOAD_DATETIME'],r:[R('old',h(CCH),h(C),h(KC),'2026-01-01')]},
+link_ci:{t:'link_contract_invoice',c:['CONTRACT_INVOICE_HK','CONTRACT_HK','INVOICE_HK','LOAD_DATETIME'],r:[R('old',h('71A7648C7C'),h(KC),h(IV1),'2026-01-01'),R('old',h('3E60DEC1D3'),h(KV2),h(IV2),'2026-01-04')]},
+sal_customer:{t:'sal_customer',c:['SAL_CUSTOMER_HK','CUSTOMER_HK','CUSTOMER_V2_HK','LOAD_DATETIME'],r:[R('old',h(SAL),h(C),h(CV2),'2026-01-04')]},
+sal_contract:{t:'sal_contract',c:['SAL_CONTRACT_HK','CONTRACT_HK','CONTRACT_V2_HK','LOAD_DATETIME'],r:[R('old',h(KSAL),h(KC),h(KV2),'2026-01-04')]},
+sal_invoice:{t:'sal_invoice',c:['SAL_INVOICE_HK','INVOICE_HK','INVOICE_V2_HK','LOAD_DATETIME'],r:[R('old',h(ISAL),h(IV1),h(IV2),'2026-01-04')]},
+sat_c1:{t:'sat_customer_details_crm_v1',c:SATC,r:[R('old',h(C),d(HD1),FI,'2026-01-01'),R('old',h(C),d(HD2),RH,'2026-01-03')]},
+sat_c2:{t:'sat_customer_details_crm_v2',c:['CUSTOMER_HK','HASHDIFF','TOWN','LOAD_DATETIME'],r:[R('old',h(CV2),d(HDV2),RH,'2026-01-04')]},
+sat_con:{t:'sat_contract_details_billing_v1',c:['CONTRACT_HK','TARIFF_CODE','METER_NO','START_DATE','STATUS','LOAD_DATETIME'],r:[R('old',h(KC),'EL-BASIC','M00000575','2026-01-01','active','2026-01-01')]},
+sts:{t:'sts_contract',c:STSC,r:[R('old',h(KC),'I','2026-01-01')]},
+eff:{t:'eff_sat_customer_contract',c:EFFC,r:[R('old',h(CCH),'2026-01-01','9999-12-31','2026-01-01')]},
+sat_il1:{t:'sat_invoice_line_billing_v1',c:['INVOICE_HK','LINE_NO','LINE_TYPE','KWH','NET_AMOUNT','TAX_AMOUNT'],r:[R('old',h(IV1),'1','energy','393','112.00','0.00'),R('old',h(IV1),'4','vat','','0.00','24.56')]},
+sat_il2:{t:'sat_invoice_line_billing_v2',c:['INVOICE_HK','LINE_NO','CHARGE_TYPE','AMOUNT_NET','VAT_AMOUNT'],r:[R('old',h(IV2),'1','energy','112.00','0.00'),R('old',h(IV2),'4','vat','0.00','24.56')]},
+bv_customer:{t:'bv_customer_master',c:BVC,r:[R('old',h(C),h(C),'C000575'),R('old',h(CV2),h(C),'C000575')]},
+bv_invoice:{t:'bv_invoice_master',c:['invoice_hk','master_invoice_hk','master_invoice_no'],r:[R('old',h(IV1),h(IV1),'INV00000575'),R('old',h(IV2),h(IV1),'INV00000575')]},
+dim_customer:{t:'dim_customer',c:DIMC,r:[R('old','C000575','2026-01-01',FI,'2026-01-03','false'),R('old','C000575','2026-01-03',RH,'9999-12-31','true')]},
+fct:{t:'fct_invoice_line',c:FCTC,r:FCT575},
+rev:{t:'billing__revenue_by_tariff_month',c:['invoice_month','tariff_code','invoice_count','kwh','net_amount','vat_amount'],r:[R('old','2026-01-01','EL-BASIC','744','354611.0','110028.9','22005.78')]}
+};
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function hue(s){var x=0;for(var i=0;i<s.length;i++)x=(x*31+s.charCodeAt(i))%360;return x;}
+function cell(v){
+if(v===null)return '<span class="null">NULL</span>';
+v=String(v);
+if(v.charAt(0)==='#')return '<span class="chip" style="--h:'+hue(v)+'">'+v.slice(1)+'…</span>';
+if(v.charAt(0)==='~')return '<span class="chip hd" style="--h:'+hue(v)+'">'+v.slice(1)+'…</span>';
+return esc(v);
+}
+function tableHtml(t,rows,cols){
+var kind=KIND[ND[t.n].kind];
+var s='<div class="tcard"><div class="thead"><span class="badge '+ND[t.n].kind+'">'+kind+'</span><b>'+esc(t.title)+'</b>'+(t.cap?'<span class="cap">'+esc(t.cap)+'</span>':'')+'</div><div class="scroll"><table><thead><tr>';
+cols.forEach(function(c){s+='<th>'+esc(c)+'</th>';});
+s+='</tr></thead><tbody>';
+rows.forEach(function(r){s+='<tr class="'+r.s+'">'+r.c.map(function(v){return '<td>'+cell(v)+'</td>';}).join('')+'</tr>';});
+return s+'</tbody></table></div></div>';
+}
+
+var svg=document.getElementById('map'),NS='http://www.w3.org/2000/svg';
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+LANES.forEach(function(l){
+el('rect',{x:0,y:l.y-10,width:1240,height:l.r*P+4,rx:10,class:'lanebg'},svg);
+var t=el('text',{x:1230,y:l.y+14,'text-anchor':'end',class:'lanet'},svg);t.textContent=l.n;
+});
+COLS.forEach(function(c,i){var t=el('text',{x:X0+i*DX,y:20,class:'colh'},svg);t.textContent=c;});
+var edgeEl={};
+E.forEach(function(k){
+var p=k.split('>'),a=ND[p[0]],b=ND[p[1]],x1=a.x+W,y1=a.y+H/2,x2=b.x,y2=b.y+H/2,dx=Math.max(30,(x2-x1)/2);
+edgeEl[k]=el('path',{d:'M'+x1+','+y1+' C'+(x1+dx)+','+y1+' '+(x2-dx)+','+y2+' '+x2+','+y2,class:'edge'},svg);
+});
+function split(l){
+if(l.length<=18)return [l];
+var best=-1,mid=l.length/2,i;
+for(i=1;i<l.length-1;i++)if(l.charAt(i)==='_'&&l.charAt(i+1)!=='_'&&(best<0||Math.abs(i-mid)<Math.abs(best-mid)))best=i;
+return best<0?[l]:[l.slice(0,best+1),l.slice(best+1)];
+}
+var nodeEl={};
+N.forEach(function(n){
+var d0=ND[n[0]],g=el('g',{class:'node '+d0.kind,tabindex:0,role:'button','aria-label':d0.label,'data-id':d0.id},svg);
+el('rect',{x:d0.x,y:d0.y,width:W,height:H,rx:8},g);
+var parts=split(d0.label);
+parts.forEach(function(p,i){var t=el('text',{x:d0.x+W/2,y:d0.y+(parts.length===1?H/2+5:H/2-3+i*15),'text-anchor':'middle'},g);t.textContent=p;});
+nodeEl[d0.id]=g;
+g.addEventListener('click',function(){selectNode(d0.id);});
+g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();selectNode(d0.id);}});
+g.addEventListener('mouseenter',function(){focusNode(d0.id);});
+g.addEventListener('mouseleave',function(){focusNode(null);});
+});
+
+var cur=0,step=-1,timer=null,selected=null;
+var panel=document.getElementById('panel'),tables=document.getElementById('tables');
+function cum(){
+var seen={},act={},i;
+if(step<0)return {seen:seen,act:act};
+for(i=0;i<=step;i++)SC[cur].steps[i].n.forEach(function(x){seen[x]=1;if(i===step)act[x]=1;});
+return {seen:seen,act:act};
+}
+function focusNode(id){
+if(step>=0&&!selected&&id===null)return paint();
+if(step>=0)return;
+Object.keys(nodeEl).forEach(function(k){nodeEl[k].classList.remove('focus-dim');});
+Object.keys(edgeEl).forEach(function(k){edgeEl[k].classList.remove('on','dim');});
+if(id===null)return;
+var near={};near[id]=1;
+Object.keys(edgeEl).forEach(function(k){var p=k.split('>');if(p[0]===id||p[1]===id){near[p[0]]=1;near[p[1]]=1;edgeEl[k].classList.add('on');}else edgeEl[k].classList.add('dim');});
+Object.keys(nodeEl).forEach(function(k){if(!near[k])nodeEl[k].classList.add('focus-dim');});
+}
+function paint(){
+var c=cum(),running=step>=0,bad={};
+Object.keys(nodeEl).forEach(function(k){
+var cl=nodeEl[k].classList;
+cl.remove('on','done','dim','bad','focus-dim','sel');
+if(running){if(c.act[k])cl.add('on');else if(c.seen[k])cl.add('done');else cl.add('dim');}
+if(selected===k)cl.add('sel');
+});
+Object.keys(edgeEl).forEach(function(k){
+var p=k.split('>'),cl=edgeEl[k].classList;cl.remove('on','dim');
+if(running){if(c.seen[p[0]]&&c.seen[p[1]]&&(c.act[p[0]]||c.act[p[1]]))cl.add('on');else cl.add('dim');}
+});
+}
+function reveal(){
+var w=svg.parentNode,ids=Object.keys(cum().act);
+if(!ids.length||w.scrollWidth<=w.clientWidth)return;
+var xs=ids.map(function(k){return ND[k].x;}),sc=svg.getBoundingClientRect().width/1240;
+w.scrollTo({left:Math.max(0,Math.min.apply(null,xs)*sc-20),behavior:'smooth'});
+}
+function renderScn(){
+var s=document.getElementById('scn');s.innerHTML='';
+SC.forEach(function(sc,i){
+var b=document.createElement('button');b.className='scn-b'+(i===cur?' sel':'');b.textContent=sc.btn;b.setAttribute('role','tab');b.setAttribute('aria-selected',i===cur);
+b.onclick=function(){stop();cur=i;step=-1;selected=null;render();};
+s.appendChild(b);
+});
+}
+function renderDots(){
+var d=document.getElementById('dots');d.innerHTML='';
+SC[cur].steps.forEach(function(st,i){
+var b=document.createElement('button');b.textContent=(i+1)+'. '+st.t;b.className=i===step?'on':(i<step?'done':'');
+b.onclick=function(){stop();step=i;selected=null;render();};
+d.appendChild(b);
+});
+}
+function renderPanel(){
+var sc=SC[cur],st=sc.steps[step],h;
+if(selected){
+var n=ND[selected];
+h='<div class="stepno">Table</div><h3><span class="badge '+n.kind+'">'+KIND[n.kind]+'</span>'+esc(n.label)+'</h3><p>'+esc(INFO[selected])+'</p><h4>File</h4><p>'+fileLink(pathOf(selected))+'</p>';
+if(!STORY[selected])h+='<h4>Rows</h4><p>No sample rows are shown for this table. See the dbt docs for its columns.</p>';
+panel.innerHTML=h;return;
+}
+if(step<0){
+panel.innerHTML='<div class="stepno">Scenario</div><h3>'+esc(sc.title)+'</h3><p>'+esc(sc.en)+'</p>'+(sc.note?'<p class="key">'+esc(sc.note)+'</p>':'')+'<h4>How to use</h4><ul><li>Press <b>Step</b> or an arrow key to move one layer.</li><li>Click a step name to jump.</li><li>Click any box to open its file and its real rows.</li></ul>';
+return;
+}
+h='<div class="stepno">'+esc(sc.title)+' &middot; step '+(step+1)+' of '+sc.steps.length+'</div><h3>'+esc(st.t)+'</h3><h4>What happened</h4><p>'+esc(st.what)+'</p><h4>Why</h4><p>'+esc(st.why)+'</p><h4>Which file and test guarantee it</h4><ul>';
+st.files.forEach(function(f){h+='<li>'+(f.indexOf('/')>0&&/\.(sql|sh|yml)$/.test(f)?fileLink(f):esc(f))+'</li>';});
+if(st.test)h+='<li>Test: '+testHtml(st.test)+'</li>';
+h+='</ul>';
+if(step===sc.steps.length-1)h+='<h4>In one sentence</h4><p><b>'+esc(sc.en)+'</b></p>';
+panel.innerHTML=h;
+}
+function testHtml(t){
+return esc(t).replace(/(dbt\/tests\/[a-z0-9_]+\.sql|scripts\/rerun_check\.sh)/g,function(m){return '<a href="'+GH+m+'"><code>'+m+'</code></a>';});
+}
+function renderTables(){
+var h='';
+if(selected){var s=STORY[selected];if(s)h=tableHtml({n:selected,title:s.t,cap:'real sample rows'},s.r,s.c);tables.innerHTML=h;return;}
+if(step<0){tables.innerHTML='<div class="tcard"><div class="thead"><b>Before and after tables appear here</b></div><div style="padding:14px 16px;color:var(--mut)">Press Step to start the scenario.</div></div>';return;}
+var st=SC[cur].steps[step];
+st.tabs.forEach(function(t){h+=tableHtml(t,t.rows,t.cols);});
+if(!st.tabs.length)h='<div class="tcard"><div class="thead"><b>No table is written in this layer</b></div><div style="padding:14px 16px;color:var(--mut)">Staging is a view: it only computes keys and hashes on the fly. The next step shows the rows it feeds.</div></div>';
+tables.innerHTML=h;
+}
+function render(){
+renderScn();renderDots();renderPanel();renderTables();paint();reveal();
+var last=step>=SC[cur].steps.length-1;
+document.getElementById('bstep').disabled=last;
+}
+function selectNode(id){
+stop();
+if(selected===id){selected=null;}else selected=id;
+if(selected&&step<0)Object.keys(edgeEl).forEach(function(k){edgeEl[k].classList.remove('on','dim');});
+render();
+if(selected&&step<0)focusNode(id);
+}
+function next(){if(step<SC[cur].steps.length-1){selected=null;step++;render();return true;}return false;}
+function stop(){if(timer){clearInterval(timer);timer=null;}document.getElementById('bauto').innerHTML='&#9205; Auto';}
+document.getElementById('bstep').onclick=function(){stop();next();};
+document.getElementById('breset').onclick=function(){stop();step=-1;selected=null;render();};
+document.getElementById('bauto').onclick=function(){
+if(timer){stop();return;}
+if(step>=SC[cur].steps.length-1){step=-1;selected=null;}
+this.innerHTML='&#9208; Pause';
+if(step<0)next();
+timer=setInterval(function(){if(!next())stop();},2800);
+};
+document.addEventListener('keydown',function(e){
+if(e.target.tagName==='BUTTON'||e.target.closest&&e.target.closest('.node'))return;
+if(e.key==='ArrowRight'){stop();next();}
+if(e.key==='ArrowLeft'&&step>=0){stop();step--;selected=null;render();}
+});
+render();
+})();
+</script>
+</body>
+</html>

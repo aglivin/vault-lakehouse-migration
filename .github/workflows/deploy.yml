@@ -48,7 +48,9 @@ jobs:
         run: |
           uv run dbt docs generate --vars "{load_date: '$(scripts/build_by_load_date.sh --last-date)'}"
       - name: Collect docs site
-        run: cp dbt/target/index.html dbt/target/catalog.json dbt/target/manifest.json docs/overview.html "$RUNNER_TEMP/site/"
+        run: |
+          cp dbt/target/index.html dbt/target/catalog.json dbt/target/manifest.json docs/overview.html "$RUNNER_TEMP/site/"
+          cp -r docs/site "$RUNNER_TEMP/site/site"
       - uses: actions/upload-pages-artifact@v5
         with:
           path: ${{ runner.temp }}/site

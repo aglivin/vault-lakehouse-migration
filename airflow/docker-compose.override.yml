@@ -2,7 +2,7 @@ x-project-volumes: &project-volumes
   volumes:
     - ../dbt:/usr/local/airflow/dbt
     - ../data/out:/usr/local/airflow/data/out:ro
-    - ${SNOWFLAKE_KEY_FILE}:/usr/local/airflow/secrets/snowflake_key.p8:ro
+    - ${SNOWFLAKE_KEY_FILE:?set host key path}:/usr/local/airflow/secrets/snowflake_key.p8:ro
 
 services:
   scheduler:

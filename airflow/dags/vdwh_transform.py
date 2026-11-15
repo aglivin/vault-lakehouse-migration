@@ -10,6 +10,11 @@ from cosmos.operators.local import DbtRunOperationLocalOperator, DbtTestLocalOpe
 
 DBT_PROJECT_DIR = Path(os.environ.get("DBT_PROJECT_DIR", "/usr/local/airflow/dbt"))
 DBT_EXECUTABLE = os.environ.get("DBT_EXECUTABLE", "/usr/local/airflow/dbt_venv/bin/dbt")
+CROSS_LAYER_TESTS = [
+    "relationships_bv_*",
+    "assert_unmapped_keys_survive",
+    "assert_mart_matches_expected_totals",
+]
 LAYERS = ["staging", "raw_vault", "business_vault", "marts"]
 
 profile_config = ProfileConfig(
@@ -17,7 +22,7 @@ profile_config = ProfileConfig(
     target_name=os.environ.get("DBT_TARGET", "snowflake_dev"),
     profiles_yml_filepath=DBT_PROJECT_DIR / "profiles.yml",
 )
-project_config = ProjectConfig(dbt_project_path=DBT_PROJECT_DIR, install_dbt_deps=True)
+project_config = ProjectConfig(dbt_project_path=DBT_PROJECT_DIR, install_dbt_deps=False)
 execution_config = ExecutionConfig(
     dbt_executable_path=DBT_EXECUTABLE,
     install_dbt_deps=False,
@@ -32,11 +37,18 @@ operator_args = {
 
 @dag(
     dag_id="vdwh_transform",
-    schedule=None,
+    schedule="@daily",
     start_date=datetime(2026, 1, 1),
+    end_date=datetime(2026, 1, 5),
+    catchup=False,
+    is_paused_upon_creation=True,
     max_active_runs=1,
     render_template_as_native_obj=True,
-    params={"full_refresh": Param(False, type="boolean")},
+    params={"full_refresh": Param(
+            False,
+            type="boolean",
+            description="Rebuilds the incremental vault from the run date only. Use it for the first date.",
+        )},
     default_args={"retries": 2, "retry_delay": timedelta(minutes=1)},
 )
 def vdwh_transform():
@@ -74,6 +86,7 @@ def vdwh_transform():
         dbt_executable_path=DBT_EXECUTABLE,
         append_env=True,
         install_deps=False,
+        select=CROSS_LAYER_TESTS,
         vars={"load_date": "{{ ds }}"},
     )
     previous >> cross_layer_tests

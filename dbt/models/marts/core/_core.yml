@@ -11,7 +11,18 @@ models:
       - name: line_no
         data_tests: [not_null]
       - name: contract_no
-        data_tests: [not_null]
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_contract')
+                field: contract_no
+      - name: invoice_date
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
       - name: tariff_code
         data_tests:
           - relationships:
@@ -30,3 +41,74 @@ models:
     columns:
       - name: tariff_code
         data_tests: [unique, not_null]
+  - name: dim_customer
+    description: SCD2 customer dimension keyed by master customer number. v1 and v2 satellite history of one customer forms one timeline. valid_to is exclusive.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [customer_no, valid_from]
+    columns:
+      - name: customer_no
+        data_tests:
+          - not_null
+          - unique:
+              config:
+                where: is_current
+      - name: valid_from
+        data_tests: [not_null]
+      - name: valid_to
+        data_tests: [not_null]
+      - name: is_current
+        data_tests: [not_null]
+  - name: dim_contract
+    description: One row per master contract, latest satellite state, including deleted contracts.
+    columns:
+      - name: contract_no
+        data_tests: [unique, not_null]
+      - name: customer_no
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customer')
+                field: customer_no
+      - name: tariff_code
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_tariff')
+                field: tariff_code
+              config:
+                where: "tariff_code is not null"
+      - name: status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [active, terminated]
+  - name: fct_payment
+    description: One row per payment. A v1 payment and its v2 settlement with the same invoice, date and amount count once.
+    columns:
+      - name: payment_id
+        data_tests: [unique, not_null]
+      - name: invoice_no
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_invoice_line')
+                field: invoice_no
+      - name: contract_no
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_contract')
+                field: contract_no
+      - name: payment_date
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day

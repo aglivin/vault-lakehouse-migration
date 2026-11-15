@@ -5,5 +5,5 @@
     src_nk='TARIFF_CODE',
     src_ldts='LOAD_DATETIME',
     src_source='RECORD_SOURCE',
-    source_model='stg_billing_v1__tariffs'
+    source_model=['stg_billing_v1__tariffs', 'stg_billing_v2__products']
 ) }}

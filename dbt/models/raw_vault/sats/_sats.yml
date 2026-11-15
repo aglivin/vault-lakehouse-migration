@@ -105,3 +105,68 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: ['contract_hk', 'load_datetime']
+  - name: sat_customer_details_crm_v2
+    columns:
+      - name: customer_hk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('hub_customer')
+                field: customer_hk
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['customer_hk', 'load_datetime']
+  - name: sat_contract_details_billing_v2
+    columns:
+      - name: contract_hk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('hub_contract')
+                field: contract_hk
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['contract_hk', 'load_datetime']
+  - name: sat_invoice_details_billing_v2
+    columns:
+      - name: invoice_hk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('hub_invoice')
+                field: invoice_hk
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['invoice_hk', 'load_datetime']
+  - name: sat_invoice_line_billing_v2
+    columns:
+      - name: invoice_hk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('hub_invoice')
+                field: invoice_hk
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['invoice_hk', 'line_no', 'load_datetime']
+  - name: sat_tariff_details_billing_v2
+    columns:
+      - name: tariff_hk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('hub_tariff')
+                field: tariff_hk
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: ['tariff_hk', 'load_datetime']

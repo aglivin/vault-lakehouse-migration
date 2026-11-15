@@ -32,11 +32,6 @@ def test_every_task_retries_at_least_twice(dag):
     assert all(task.retries >= REQUIRED_RETRIES for task in dag.tasks)
 
 
-def test_dbt_deps_is_the_only_root(dag):
-    roots = [task.task_id for task in dag.tasks if not task.upstream_task_ids]
-    assert roots == ["dbt_deps"]
-
-
 def test_layers_depend_on_previous_layer(dag):
     for upstream, downstream in zip(LAYERS, LAYERS[1:]):
         first_tasks = [

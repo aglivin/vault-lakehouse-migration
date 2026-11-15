@@ -1,0 +1,26 @@
+flowchart LR
+    subgraph AF["Airflow (Astro CLI, Cosmos)"]
+        ING["DAG vdwh_ingest"] --> AST(["Asset vdwh/raw_landed"]) --> TRF["DAG vdwh_transform<br/>staging, raw_vault, business_vault, marts"]
+    end
+    GEN["Generator<br/>Billing v1/v2, CRM v1/v2, key_map"]
+    subgraph SF["Snowflake lane (snowflake_dev)"]
+        direction LR
+        SL["stage @VDWH_DEV.RAW.LANDING"] --> SR["raw.system__entity"] --> SS["staging"] --> SV["raw vault"] --> SB["business vault"] --> SM["marts"]
+    end
+    subgraph DB["Databricks lane (databricks_dev)"]
+        direction LR
+        DL["volume /Volumes/vdwh_dev/raw/landing"] --> DR["raw.system__entity"] --> DS["staging"] --> DV["raw vault"] --> DB2["business vault"] --> DM["marts"]
+    end
+    REC["recon__table_stats<br/>scripts/compare_recon.py"]
+    CON["Consumers: billing, sales, tax, call centre"]
+    GEN --> SL
+    GEN --> DL
+    SM --> CON
+    DM --> CON
+    SM -.-> REC
+    DM -.-> REC
+    AF -.-> SF
+    subgraph GH["GitHub Actions"]
+        PR["PR: checks, dbt-slim, no-ai-attribution"]
+        MAIN["main: deploy, dbt docs"]
+    end

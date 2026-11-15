@@ -12,112 +12,37 @@ A Data Vault 2.0 warehouse that survives a source-system change and a move from 
 
 **[Architecture overview (2 min read)](https://aglivin.github.io/vault-lakehouse-migration/overview.html)** · [dbt docs and live lineage](https://aglivin.github.io/vault-lakehouse-migration/)
 
-[Scenario](#scenario) · [Where to start](#where-to-start) · [5-minute tour](#5-minute-tour) · [Results](#results) · [Layers](#layers) · [Architecture](#architecture) · [Repository map](#repository-map) · [Quickstart](#quickstart) · [Known limits](#known-limits) · [Roadmap](#roadmap)
+## How it is built
 
-The same dbt project runs on two lanes, Snowflake and Databricks.
+One dbt project loads two warehouse lanes, Snowflake and Databricks. Airflow runs the loads. GitHub Actions checks and deploys them.
+
+![Platform architecture: generator, Snowflake and Databricks lanes, Airflow DAGs, GitHub Actions](docs/architecture-platform.drawio.svg)
+
+Other diagrams: [vault model](docs/architecture-vault-model.drawio.svg), [source change and migration timeline](docs/architecture-change-migration.drawio.svg). Editable source: [`docs/architecture.drawio`](docs/architecture.drawio).
+
+## How data flows
+
+Each layer is a folder of dbt models. The example models are real.
 
 ```mermaid
 flowchart LR
-    subgraph AF["Airflow (Astro CLI, Cosmos)"]
-        ING["DAG vdwh_ingest"] --> AST(["Asset vdwh/raw_landed"]) --> TRF["DAG vdwh_transform<br/>staging, raw_vault, business_vault, marts"]
-    end
-    GEN["Generator<br/>Billing v1/v2, CRM v1/v2, key_map"]
-    subgraph SF["Snowflake lane (snowflake_dev)"]
-        direction LR
-        SL["stage @VDWH_DEV.RAW.LANDING"] --> SR["raw.system__entity"] --> SS["staging"] --> SV["raw vault"] --> SB["business vault"] --> SM["marts"]
-    end
-    subgraph DB["Databricks lane (databricks_dev)"]
-        direction LR
-        DL["volume /Volumes/vdwh_dev/raw/landing"] --> DR["raw.system__entity"] --> DS["staging"] --> DV["raw vault"] --> DB2["business vault"] --> DM["marts"]
-    end
-    REC["recon__table_stats<br/>scripts/compare_recon.py"]
-    CON["Consumers: billing, sales, tax, call centre"]
-    GEN --> SL
-    GEN --> DL
-    SM --> CON
-    DM --> CON
-    SM -.-> REC
-    DM -.-> REC
-    AF -.-> SF
-    subgraph GH["GitHub Actions"]
-        PR["PR: checks, dbt-slim, no-ai-attribution"]
-        MAIN["main: deploy, dbt docs"]
-    end
+    LAND["Landing<br/>files per load date"] --> RAWT["raw<br/>raw.crm_v1__customers"] --> STG["staging<br/>stg_crm_v1__customers"] --> RV["raw vault<br/>hub_customer<br/>sat_customer_details_crm_v1"] --> BV["business vault<br/>bv_customer_master<br/>pit_customer"] --> MT["marts<br/>fct_invoice_line<br/>billing__revenue_by_tariff_month"] --> CONS["Consumers<br/>billing, sales, tax, call centre"]
+    classDef raw fill:#f5e6d3,stroke:#92400e,color:#111827
+    classDef stg fill:#ffffff,stroke:#92400e,color:#111827
+    classDef hub fill:#dbeafe,stroke:#2563eb,color:#111827
+    classDef bv fill:#e5e7eb,stroke:#4b5563,color:#111827
+    classDef mart fill:#fde68a,stroke:#b45309,color:#111827
+    classDef user fill:#ffffff,stroke:#4b5563,color:#111827
+    class LAND,RAWT raw
+    class STG stg
+    class RV hub
+    class BV bv
+    class MT mart
+    class CONS user
+    linkStyle default stroke:#6b7280,stroke-width:2px
 ```
 
-Detailed diagrams: [platform](docs/architecture-platform.drawio.svg), [vault model](docs/architecture-vault-model.drawio.svg), [source change and migration timeline](docs/architecture-change-migration.drawio.svg). Editable source: [`docs/architecture.drawio`](docs/architecture.drawio).
-
-## Scenario
-
-A utility sells electricity and gas to residential customers. Data comes from two operational systems:
-
-- **Billing**: contracts, meters, tariffs, invoices, invoice lines, payments
-- **CRM**: customers, phone numbers, call-centre contacts
-
-On load date 2026-01-04 both systems are replaced (Billing v1 → v2, CRM v1 → v2) with new keys and new column names. The Data Vault absorbs the change with no break in history and no change for consumers. After that, the whole warehouse moves from Snowflake to Databricks with the same dbt project.
-
-| Area | Tool |
-|---|---|
-| Warehouse | Snowflake (current), Databricks with Unity Catalog (target) |
-| Transformation | dbt Core, `automate_dv` (Data Vault 2.0), `dbt_utils` |
-| Orchestration | Apache Airflow 3 (Astro CLI, `astronomer-cosmos`) |
-| CI/CD | GitHub Actions, GitHub Pages for dbt docs |
-| Quality | dbt tests and contracts, `sqlfluff`, `pytest`, `pre-commit` |
-
-## Where to start
-
-| You are | Open first | Then |
-|---|---|---|
-| Analyst | [`dbt/models/marts`](dbt/models/marts) and the metrics in [`_exposures.yml`](dbt/models/marts/_exposures.yml) | The [dbt docs](https://aglivin.github.io/vault-lakehouse-migration/) for lineage and column descriptions |
-| Engineer | [`dbt/models/raw_vault`](dbt/models/raw_vault) | [`dbt/macros`](dbt/macros), [`docs/loading.md`](docs/loading.md), then the [Quickstart](#quickstart) |
-| Reviewer | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | [`dbt/tests`](dbt/tests), [`data/recon`](data/recon), [`docs/source-change.md`](docs/source-change.md) |
-
-
-## 5-minute tour
-
-1. [Source change](docs/source-change.md): Billing and CRM v1 are replaced by v2, and the marts do not change.
-2. [Migration](docs/migration.md): one dbt project on both platforms; dialect gaps live in dispatch macros.
-3. [Cut-over and rollback](docs/cutover.md): parallel run, reconciliation, go/no-go rule.
-4. [Performance](docs/performance.md): clustering and incremental strategies, measured from query history.
-5. [Airflow DAGs](docs/airflow.md): asset scheduling, alerts, backfill ([graph](docs/img/airflow_graph.png)).
-6. [CI](.github/workflows/ci.yml): lint, slim build against the prod manifest, attribution check.
-
-A spoken version of this tour: [`docs/walkthrough.md`](docs/walkthrough.md). How AI tooling was used: [`docs/ai-notes.md`](docs/ai-notes.md).
-
-## Results
-
-Hub, link and mart numbers measured on `snowflake_dev` after load date 2026-01-05 with `dbt show -s <analysis>`. Every number comes from a query or script in the repo.
-
-| What | Result | Source |
-|---|---|---|
-| Hubs | customer 4204, contract 4153, meter 4204, invoice 7612, tariff 12 | `dbt/analyses/vault_row_counts.sql` |
-| Links | customer-contract 4153, contract-meter 4153, contract-invoice 7612, invoice-tariff 7612 | `dbt/analyses/vault_row_counts.sql` |
-| Mart vs expected totals | 4421 invoices, net total 461626.22, equal on `snowflake_dev` and `databricks_dev` | `dbt/analyses/mart_vs_expected_totals.sql`, table in [`docs/migration.md`](docs/migration.md#result) |
-| Snowflake vs Databricks | 0 differences in 35 tables (snapshot taken before the star-schema PRs, see Known limits) | `scripts/compare_recon.py` on `data/recon/*.json` |
-| dbt models | 72 | `uv run dbt ls --project-dir dbt --profiles-dir dbt --resource-type model \| wc -l` |
-| dbt tests | 226 | `uv run dbt ls --project-dir dbt --profiles-dir dbt --resource-type test \| wc -l` |
-
-## Layers
-
-| Layer | Path | Models | What it holds |
-|---|---|---|---|
-| Staging | `dbt/models/staging` | 21 | Views over raw tables for Billing v1/v2 and CRM v1/v2, with hash keys and hashdiffs |
-| Raw vault | `dbt/models/raw_vault` | 31 | 5 hubs, 4 links, 4 non-historised links (contact, payment), 5 same-as links, satellites, effectivity and status tracking |
-| Business vault | `dbt/models/business_vault` | 7 | One master model per entity, PIT and bridge tables |
-| Marts | `dbt/models/marts` | 12 | Star schema and four data products: billing, sales, tax, call centre |
-| Recon | `dbt/models/recon` | 1 | `recon__table_stats`, one row per table, used to compare platforms |
-| Perf | `dbt/models/perf` | 0 | `perf_invoice_line_incremental`, disabled unless `perf_strategy` is set |
-| Total | `dbt/models` | 72 | |
-
-Source of the counts, run once per layer (here `marts`):
-
-```bash
-uv run dbt ls --project-dir dbt --profiles-dir dbt --target snowflake_dev --resource-type model --select path:models/marts -q | wc -l
-```
-
-## Architecture
-
-### Vault model
+## Vault model
 
 Hubs hold business keys. Links hold relationships. Satellites hold history. Names are the real dbt models.
 
@@ -174,11 +99,23 @@ flowchart LR
     sal_meter -.-> hub_meter
     sal_invoice -.-> hub_invoice
     sal_tariff -.-> hub_tariff
+    classDef hub fill:#dbeafe,stroke:#2563eb,color:#111827
+    classDef link fill:#dcfce7,stroke:#16a34a,color:#111827
+    classDef sat fill:#fef9c3,stroke:#ca8a04,color:#111827
+    class hub_customer,hub_contract,hub_meter,hub_invoice,hub_tariff hub
+    class link_customer_contract,link_contract_meter,link_contract_invoice,link_invoice_tariff,sal_customer,sal_contract,sal_meter,sal_invoice,sal_tariff link
+    class sat_customer_details,sat_customer_phone_ma,sat_contract_details,sts_contract,sat_invoice_details,sat_invoice_line,sat_tariff_details,eff_sat_customer_contract sat
+    style HUBS fill:#eff6ff,stroke:#2563eb,color:#111827
+    style LINKS fill:#f0fdf4,stroke:#16a34a,color:#111827
+    style SAT fill:#fefce8,stroke:#ca8a04,color:#111827
+    style SAL fill:#f0fdf4,stroke:#16a34a,color:#111827
+    linkStyle default stroke:#6b7280,stroke-width:2px
 ```
 
 Not drawn: the non-historised links `nhl_contact_crm_v1`, `nhl_contact_crm_v2`, `nhl_payment_billing_v1` and `nhl_payment_billing_v2`.
 
-### Source change v1 to v2
+<details>
+<summary><strong>Source change v1 to v2</strong></summary>
 
 From 2026-01-04 (dbt var `cutover_date`) the data comes from Billing v2 and CRM v2. Details and numbers: [`docs/source-change.md`](docs/source-change.md).
 
@@ -208,9 +145,27 @@ flowchart LR
     S2 --> BV
     HUB --> BV
     BV --> MART
+    classDef stg fill:#ffffff,stroke:#92400e,color:#111827
+    classDef hub fill:#dbeafe,stroke:#2563eb,color:#111827
+    classDef link fill:#dcfce7,stroke:#16a34a,color:#111827
+    classDef sat fill:#fef9c3,stroke:#ca8a04,color:#111827
+    classDef bv fill:#e5e7eb,stroke:#4b5563,color:#111827
+    classDef mart fill:#fde68a,stroke:#b45309,color:#111827
+    class B1,B2,KM stg
+    class HUB hub
+    class SAL link
+    class S1,S2 sat
+    class BV bv
+    class MART mart
+    style V1 fill:#fff7ed,stroke:#92400e,color:#111827
+    style V2 fill:#fff7ed,stroke:#92400e,color:#111827
+    linkStyle default stroke:#6b7280,stroke-width:2px
 ```
 
-### Migration and cut-over
+</details>
+
+<details>
+<summary><strong>Migration and cut-over</strong></summary>
 
 Plan, go/no-go rule and rollback: [`docs/cutover.md`](docs/cutover.md). Platform differences: [`docs/migration.md`](docs/migration.md).
 
@@ -224,9 +179,21 @@ flowchart LR
     L --> W["Rollback window 14 days<br/>Snowflake loads continue, recon daily"]
     W --> E["Stop Snowflake loads<br/>keep a final export"]
     W -. "recon difference, failed build or wrong numbers" .-> B["Rollback<br/>consumers back to Snowflake"]
+    classDef dbx fill:#fee2e2,stroke:#dc2626,color:#111827
+    classDef sat fill:#fef9c3,stroke:#ca8a04,color:#111827
+    classDef af fill:#e0e7ff,stroke:#4f46e5,color:#111827
+    classDef mart fill:#fde68a,stroke:#b45309,color:#111827
+    class P,C,E,W mart
+    class R,G sat
+    class F,B dbx
+    class L af
+    linkStyle default stroke:#6b7280,stroke-width:2px
 ```
 
-### CI/CD
+</details>
+
+<details>
+<summary><strong>CI/CD</strong></summary>
 
 Workflows: [`ci.yml`](.github/workflows/ci.yml), [`attribution.yml`](.github/workflows/attribution.yml), [`deploy.yml`](.github/workflows/deploy.yml).
 
@@ -242,9 +209,19 @@ flowchart LR
         BP["build-prod<br/>build one load date at a time<br/>dbt docs generate"] --> PD["publish-docs<br/>GitHub Pages"]
     end
     PD -. "manifest.json" .-> FET
+    classDef gh fill:#f3f4f6,stroke:#111827,color:#111827
+    classDef prod fill:#fde68a,stroke:#b45309,color:#111827
+    class CH,SL,NA,WAIT,FET gh
+    class BP,PD prod
+    style PRF fill:#ffffff,stroke:#111827,color:#111827
+    style MN fill:#fffbeb,stroke:#b45309,color:#111827
+    linkStyle default stroke:#6b7280,stroke-width:2px
 ```
 
-### Airflow
+</details>
+
+<details>
+<summary><strong>Airflow</strong></summary>
 
 Details, alerts, backfill and target switch: [`docs/airflow.md`](docs/airflow.md). Graph: [`docs/img/airflow_graph.png`](docs/img/airflow_graph.png).
 
@@ -258,9 +235,39 @@ flowchart LR
     subgraph TRF["DAG vdwh_transform"]
         RLD["resolve_load_date"] --> SEED["dbt_seed"] --> ST["staging"] --> RV["raw_vault"] --> BV["business_vault"] --> MA["marts"] --> XT["cross_layer_tests"]
     end
+    classDef af fill:#e0e7ff,stroke:#4f46e5,color:#111827
+    classDef asset fill:#ffffff,stroke:#4f46e5,stroke-width:3px,color:#111827
+    class LRAW,WAIT,PUB,RLD,SEED,ST,RV,BV,MA,XT af
+    class AST asset
+    style ING fill:#eef2ff,stroke:#4f46e5,color:#111827
+    style TRF fill:#eef2ff,stroke:#4f46e5,color:#111827
+    linkStyle default stroke:#6b7280,stroke-width:2px
 ```
 
 The four layer nodes are Cosmos task groups with one task per dbt model. `wait_for_idle_transform` holds the next event until the previous transform run ends, so each run gets one load date.
+
+</details>
+
+[Where to start](#where-to-start) · [Repository map](#repository-map) · [Getting started](#getting-started) · [Scenario](#scenario) · [Results](#results) · [Layers](#layers) · [Known limits](#known-limits) · [Roadmap](#roadmap)
+
+## Where to start
+
+| You are | Open first | Then |
+|---|---|---|
+| Analyst | [`dbt/models/marts`](dbt/models/marts) and the metrics in [`_exposures.yml`](dbt/models/marts/_exposures.yml) | The [dbt docs](https://aglivin.github.io/vault-lakehouse-migration/) for lineage and column descriptions |
+| Engineer | [`dbt/models/raw_vault`](dbt/models/raw_vault) | [`dbt/macros`](dbt/macros), [`docs/loading.md`](docs/loading.md), then [Getting started](#getting-started) |
+| Reviewer | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | [`dbt/tests`](dbt/tests), [`data/recon`](data/recon), [`docs/source-change.md`](docs/source-change.md) |
+
+A 5-minute tour:
+
+1. [Source change](docs/source-change.md): Billing and CRM v1 are replaced by v2, and the marts do not change.
+2. [Migration](docs/migration.md): one dbt project on both platforms; dialect gaps live in dispatch macros.
+3. [Cut-over and rollback](docs/cutover.md): parallel run, reconciliation, go/no-go rule.
+4. [Performance](docs/performance.md): clustering and incremental strategies, measured from query history.
+5. [Airflow DAGs](docs/airflow.md): asset scheduling, alerts, backfill ([graph](docs/img/airflow_graph.png)).
+6. [CI](.github/workflows/ci.yml): lint, slim build against the prod manifest, attribution check.
+
+A spoken version of this tour: [`docs/walkthrough.md`](docs/walkthrough.md). How AI tooling was used: [`docs/ai-notes.md`](docs/ai-notes.md).
 
 ## Repository map
 
@@ -283,19 +290,153 @@ The four layer nodes are Cosmos task groups with one task per dbt model. `wait_f
 | `data/recon` | Committed `recon__table_stats` output of both platforms | [`snowflake_dev.json`](data/recon/snowflake_dev.json) |
 | `tests/` | pytest for the generator, upload and recon scripts | [`test_compare_recon.py`](tests/test_compare_recon.py) |
 
-## Quickstart
+## Getting started
 
-Needs Python 3.12 with `uv`, the Snowflake CLI connection `personal` and the Databricks CLI profile `personal` (the upload script uses them), and a Snowflake or Databricks account.
+Needs Python 3.12 with `uv`, a Snowflake account with the Snowflake CLI connection `personal` (the upload script uses it), and Docker with the Astro CLI for step 13. For Databricks use the CLI profile `personal`, `--target databricks_dev` and `--target databricks` in the upload script.
+
+1. Clone the repo.
+
+   ```bash
+   git clone https://github.com/aglivin/vault-lakehouse-migration.git
+   cd vault-lakehouse-migration
+   ```
+
+2. Install the Python packages.
+
+   ```bash
+   uv sync
+   ```
+
+3. Create `.env` and fill in the Snowflake values. `dbt/profiles.yml` reads env vars only.
+
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Load `.env` into the shell. Repeat this in every new shell.
+
+   ```bash
+   set -a; source .env; set +a
+   ```
+
+5. Generate the synthetic Billing and CRM files and the expected totals.
+
+   ```bash
+   uv run python -m data_generator
+   ```
+
+6. Install the dbt packages.
+
+   ```bash
+   uv run dbt deps --project-dir dbt --profiles-dir dbt --target snowflake_dev
+   ```
+
+7. Create the raw tables.
+
+   ```bash
+   uv run dbt run-operation create_raw_tables --project-dir dbt --profiles-dir dbt --target snowflake_dev
+   ```
+
+8. Load the raw tables, one load date at a time. Each date is uploaded to the stage, then copied into raw.
+
+   ```bash
+   for d in 2026-01-0{1..5}; do
+     uv run python -m scripts.upload_landing --target snowflake --load-date $d
+     uv run dbt run-operation load_raw --args "{load_date: $d}" --project-dir dbt --profiles-dir dbt --target snowflake_dev
+   done
+   ```
+
+9. Build staging, raw vault, business vault and marts, one load date at a time.
+
+   ```bash
+   scripts/build_by_load_date.sh --project-dir dbt --profiles-dir dbt --target snowflake_dev
+   ```
+
+10. Run the Python tests.
+
+    ```bash
+    uv run pytest -q
+    ```
+
+11. Run the dbt tests on the last load date.
+
+    ```bash
+    uv run dbt test --project-dir dbt --profiles-dir dbt --target snowflake_dev --vars "{load_date: '2026-01-05'}"
+    ```
+
+12. Check the mart totals against the expected totals (4421 invoices, net total 461626.22).
+
+    ```bash
+    uv run dbt show --select mart_vs_expected_totals --project-dir dbt --profiles-dir dbt --target snowflake_dev --vars "{load_date: '2026-01-05'}"
+    ```
+
+13. Optional: run the same flow in Airflow. First copy `airflow/.env.example` to `airflow/.env`, fill it in, and export `SNOWFLAKE_KEY_FILE` (details: [`docs/airflow.md`](docs/airflow.md#local-run)).
+
+    ```bash
+    cd airflow
+    astro dev start
+    astro dev run dags unpause vdwh_ingest
+    astro dev run dags unpause vdwh_transform
+    astro dev run dags trigger vdwh_ingest --logical-date 2026-01-01T00:00:00+00:00
+    ```
+
+    Run the load dates in order. For several dates use a backfill, see [`docs/airflow.md`](docs/airflow.md#backfill). Airflow runs at http://localhost:8080. Stop it with `astro dev stop`.
+
+14. Optional: build and open the dbt docs with lineage.
+
+    ```bash
+    cd ..
+    uv run dbt docs generate --project-dir dbt --profiles-dir dbt --target snowflake_dev
+    uv run dbt docs serve --project-dir dbt --profiles-dir dbt
+    ```
+
+## Scenario
+
+A utility sells electricity and gas to residential customers. Data comes from two operational systems:
+
+- **Billing**: contracts, meters, tariffs, invoices, invoice lines, payments
+- **CRM**: customers, phone numbers, call-centre contacts
+
+On load date 2026-01-04 both systems are replaced (Billing v1 → v2, CRM v1 → v2) with new keys and new column names. The Data Vault absorbs the change with no break in history and no change for consumers. After that, the whole warehouse moves from Snowflake to Databricks with the same dbt project.
+
+| Area | Tool |
+|---|---|
+| Warehouse | Snowflake (current), Databricks with Unity Catalog (target) |
+| Transformation | dbt Core, `automate_dv` (Data Vault 2.0), `dbt_utils` |
+| Orchestration | Apache Airflow 3 (Astro CLI, `astronomer-cosmos`) |
+| CI/CD | GitHub Actions, GitHub Pages for dbt docs |
+| Quality | dbt tests and contracts, `sqlfluff`, `pytest`, `pre-commit` |
+
+## Results
+
+Hub, link and mart numbers measured on `snowflake_dev` after load date 2026-01-05 with `dbt show -s <analysis>`. Every number comes from a query or script in the repo.
+
+| What | Result | Source |
+|---|---|---|
+| Hubs | customer 4204, contract 4153, meter 4204, invoice 7612, tariff 12 | `dbt/analyses/vault_row_counts.sql` |
+| Links | customer-contract 4153, contract-meter 4153, contract-invoice 7612, invoice-tariff 7612 | `dbt/analyses/vault_row_counts.sql` |
+| Mart vs expected totals | 4421 invoices, net total 461626.22, equal on `snowflake_dev` and `databricks_dev` | `dbt/analyses/mart_vs_expected_totals.sql`, table in [`docs/migration.md`](docs/migration.md#result) |
+| Snowflake vs Databricks | 0 differences in 35 tables (snapshot taken before the star-schema PRs, see Known limits) | `scripts/compare_recon.py` on `data/recon/*.json` |
+| dbt models | 72 | `uv run dbt ls --project-dir dbt --profiles-dir dbt --resource-type model \| wc -l` |
+| dbt tests | 226 | `uv run dbt ls --project-dir dbt --profiles-dir dbt --resource-type test \| wc -l` |
+
+## Layers
+
+| Layer | Path | Models | What it holds |
+|---|---|---|---|
+| Staging | `dbt/models/staging` | 21 | Views over raw tables for Billing v1/v2 and CRM v1/v2, with hash keys and hashdiffs |
+| Raw vault | `dbt/models/raw_vault` | 31 | 5 hubs, 4 links, 4 non-historised links (contact, payment), 5 same-as links, satellites, effectivity and status tracking |
+| Business vault | `dbt/models/business_vault` | 7 | One master model per entity, PIT and bridge tables |
+| Marts | `dbt/models/marts` | 12 | Star schema and four data products: billing, sales, tax, call centre |
+| Recon | `dbt/models/recon` | 1 | `recon__table_stats`, one row per table, used to compare platforms |
+| Perf | `dbt/models/perf` | 0 | `perf_invoice_line_incremental`, disabled unless `perf_strategy` is set |
+| Total | `dbt/models` | 72 | |
+
+Source of the counts, run once per layer (here `marts`):
 
 ```bash
-git clone https://github.com/aglivin/vault-lakehouse-migration.git && cd vault-lakehouse-migration && uv sync && cp .env.example .env
-set -a; source .env; set +a; uv run python -m data_generator
-uv run dbt deps --project-dir dbt --profiles-dir dbt --target snowflake_dev && uv run dbt run-operation create_raw_tables --project-dir dbt --profiles-dir dbt --target snowflake_dev
-for d in 2026-01-0{1..5}; do uv run python -m scripts.upload_landing --target snowflake --load-date $d && uv run dbt run-operation load_raw --args "{load_date: $d}" --project-dir dbt --profiles-dir dbt --target snowflake_dev; done
-scripts/build_by_load_date.sh --project-dir dbt --profiles-dir dbt --target snowflake_dev
+uv run dbt ls --project-dir dbt --profiles-dir dbt --target snowflake_dev --resource-type model --select path:models/marts -q | wc -l
 ```
-
-Fill in `.env` after step 1. `dbt/profiles.yml` reads env vars only. For Databricks use `--target databricks_dev` and `--target databricks` in the upload script. The build script runs `dbt build` once per load date.
 
 ## Known limits
 
@@ -313,7 +454,7 @@ Fill in `.env` after step 1. `dbt/profiles.yml` reads env vars only. For Databri
 ### Phase 0 — Accounts and local setup
 
 - [x] Snowflake trial account (30 days), warehouse `XS`, role `TRANSFORMER`, database `VDWH_DEV`
-- [x] Databricks Free Edition workspace (personal, not a client workspace), Unity Catalog `vdwh_dev`
+- [x] Databricks Free Edition workspace (personal), Unity Catalog `vdwh_dev`
 - [x] Docker Desktop running; Astro CLI installed
 - [x] `uv` project with `dbt-core`, `dbt-snowflake`, `dbt-databricks`, `sqlfluff`, `pre-commit`
 - [x] Snowflake CLI (`snow`) installed

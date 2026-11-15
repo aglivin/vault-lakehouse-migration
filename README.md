@@ -230,7 +230,15 @@ A spoken version of this tour: [`docs/walkthrough.md`](docs/walkthrough.md). How
 
 ## Getting started
 
-Needs Python 3.12 with `uv`, a Snowflake account with the Snowflake CLI connection `personal` (the upload script uses it), and Docker with the Astro CLI for step 13. For Databricks use the CLI profile `personal`, `--target databricks_dev` and `--target databricks` in the upload script.
+The Snowflake path needs:
+
+- Python 3.12 with `uv`;
+- a Snowflake account with key-pair auth;
+- the Snowflake CLI (`snow`) with a connection named `personal` (the upload script uses it).
+
+The Databricks CLI is not needed for the Snowflake path. Docker and the Astro CLI are needed only for the Airflow step 14.
+
+For Databricks instead: the Databricks CLI profile `personal`, `--target databricks_dev` in the dbt commands and `--target databricks` in the upload script.
 
 1. Clone the repo.
 
@@ -245,37 +253,41 @@ Needs Python 3.12 with `uv`, a Snowflake account with the Snowflake CLI connecti
    uv sync
    ```
 
-3. Create `.env` and fill in the Snowflake values. `dbt/profiles.yml` reads env vars only.
+3. Create `.env` from the template.
 
    ```bash
    cp .env.example .env
    ```
 
-4. Load `.env` into the shell. Repeat this in every new shell.
+4. Edit `.env` now, before you load it. Fill in `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER` and `SNOWFLAKE_PRIVATE_KEY_PATH` (absolute path of the `.p8` key), and check role, warehouse and database. `dbt/profiles.yml` reads env vars only.
+
+   Optional: change `DBT_DEV_SCHEMA` from `dev` to your own schema, so that you do not share the `dev` schema with other runs.
+
+5. Load `.env` into the shell. Repeat this in every new shell.
 
    ```bash
    set -a; source .env; set +a
    ```
 
-5. Generate the synthetic Billing and CRM files and the expected totals.
+6. Generate the synthetic Billing and CRM files and the expected totals.
 
    ```bash
    uv run python -m data_generator
    ```
 
-6. Install the dbt packages.
+7. Install the dbt packages.
 
    ```bash
    uv run dbt deps --project-dir dbt --profiles-dir dbt --target snowflake_dev
    ```
 
-7. Create the raw tables.
+8. Create the raw tables.
 
    ```bash
    uv run dbt run-operation create_raw_tables --project-dir dbt --profiles-dir dbt --target snowflake_dev
    ```
 
-8. Load the raw tables, one load date at a time. Each date is uploaded to the stage, then copied into raw.
+9. Load the raw tables, one load date at a time. Each date is uploaded to the stage, then copied into raw (about 3 minutes in total).
 
    ```bash
    for d in 2026-01-0{1..5}; do
@@ -284,49 +296,75 @@ Needs Python 3.12 with `uv`, a Snowflake account with the Snowflake CLI connecti
    done
    ```
 
-9. Build staging, raw vault, business vault and marts, one load date at a time.
+10. Build staging, raw vault, business vault and marts, one load date at a time.
 
-   ```bash
-   scripts/build_by_load_date.sh --project-dir dbt --profiles-dir dbt --target snowflake_dev
-   ```
+    ```bash
+    scripts/build_by_load_date.sh --project-dir dbt --profiles-dir dbt --target snowflake_dev
+    ```
 
-10. Run the Python tests.
+11. Run the Python tests.
 
     ```bash
     uv run pytest -q
     ```
 
-11. Run the dbt tests on the last load date.
+12. Run the dbt tests on the last load date.
 
     ```bash
     uv run dbt test --project-dir dbt --profiles-dir dbt --target snowflake_dev --vars "{load_date: '2026-01-05'}"
     ```
 
-12. Check the mart totals against the expected totals (4421 invoices, net total 461626.22).
+13. Check the mart totals against the expected totals in `dbt/seeds/expected_totals.csv`: 4421 invoices, net total 461626.22, VAT total 92325.66.
 
     ```bash
     uv run dbt show --select mart_vs_expected_totals --project-dir dbt --profiles-dir dbt --target snowflake_dev --vars "{load_date: '2026-01-05'}"
+    uv run dbt show --inline "select count(*) as invoices, sum(vat_amount) as vat_total from {{ ref('tax__vat_by_invoice') }}" --project-dir dbt --profiles-dir dbt --target snowflake_dev
     ```
 
-13. Optional: run the same flow in Airflow. First copy `airflow/.env.example` to `airflow/.env`, fill it in, and export `SNOWFLAKE_KEY_FILE` (details: [`docs/airflow.md`](docs/airflow.md#local-run)).
+    The first query returns invoices and net total. The second returns the VAT total; the test `assert_vat_matches_expected_totals` checks the same value in step 12.
 
-    ```bash
-    cd airflow
-    astro dev start
-    astro dev run dags unpause vdwh_ingest
-    astro dev run dags unpause vdwh_transform
-    astro dev run dags trigger vdwh_ingest --logical-date 2026-01-01T00:00:00+00:00
-    ```
+14. Optional: run the same flow in Airflow (Docker and the Astro CLI). Full runbook: [`docs/airflow.md`](docs/airflow.md#local-run).
 
-    Run the load dates in order. For several dates use a backfill, see [`docs/airflow.md`](docs/airflow.md#backfill). Airflow runs at http://localhost:8080. Stop it with `astro dev stop`.
+    1. Create `airflow/.env` from the template and copy the Snowflake values and `DBT_DEV_SCHEMA` from the root `.env`. Keep `SNOWFLAKE_PRIVATE_KEY_PATH=/usr/local/airflow/secrets/snowflake_key.p8`: this is the key path inside the container. The template already sets `AIRFLOW__CORE__PARALLELISM=4`.
 
-14. Optional: build and open the dbt docs with lineage.
+       ```bash
+       cp airflow/.env.example airflow/.env
+       ```
+
+    2. Create the Astro project file. `airflow/.astro/` is git-ignored, so a fresh clone does not have it. Do not run `astro dev init`: it overwrites the Dockerfile, the requirements and the DAGs.
+
+       ```bash
+       cd airflow
+       mkdir -p .astro && printf 'project:\n  name: vdwh\n' > .astro/config.yaml
+       ```
+
+    3. Export the host path of the Snowflake key (from the root `.env` loaded in step 5). Docker Compose needs it for `astro dev start` and for `astro dev stop`.
+
+       ```bash
+       export SNOWFLAKE_KEY_FILE="$SNOWFLAKE_PRIVATE_KEY_PATH"
+       ```
+
+    4. Start Airflow, wait until the DAGs are parsed (about 40 seconds), then unpause and trigger the first load date.
+
+       ```bash
+       astro dev start
+       until astro dev run dags list 2>/dev/null | grep -q vdwh_transform; do sleep 10; done
+       astro dev run dags unpause vdwh_ingest
+       astro dev run dags unpause vdwh_transform
+       astro dev run dags trigger vdwh_ingest --logical-date 2026-01-01T00:00:00+00:00
+       ```
+
+    Run the load dates in order. For several dates use a backfill, see [`docs/airflow.md`](docs/airflow.md#backfill). Airflow runs at http://localhost:8080. Stop it with `astro dev stop` in a shell where `SNOWFLAKE_KEY_FILE` is exported.
+
+15. Optional: build and open the dbt docs with lineage.
 
     ```bash
     cd ..
     uv run dbt docs generate --project-dir dbt --profiles-dir dbt --target snowflake_dev
     uv run dbt docs serve --project-dir dbt --profiles-dir dbt
     ```
+
+Every dbt command prints `Unknown parameter 'reuse_connections'` and `'insecure_mode'` warnings. They come from the Snowflake connector and are noise only.
 
 ## Scenario
 

@@ -6,7 +6,16 @@ dependencies = [
     "dbt-core>=1.12.6",
     "dbt-databricks>=1.13.0",
     "dbt-snowflake>=1.12.5",
+    "faker>=40.54.0",
     "pre-commit>=4.7.0",
     "sqlfluff>=4.5.0",
     "sqlfluff-templater-dbt>=4.5.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

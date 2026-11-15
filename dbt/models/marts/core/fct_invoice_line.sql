@@ -1,7 +1,12 @@
+{% set clustering = none %}
+{% if var('perf_clustering', false) %}
+    {% set clustering = ['tariff_code', 'invoice_date'] %}
+{% endif %}
+
 {{
     config(
-        cluster_by=['tariff_code', 'invoice_date'],
-        liquid_clustered_by=['tariff_code', 'invoice_date'],
+        cluster_by=clustering,
+        liquid_clustered_by=clustering,
         event_time='invoice_date'
     )
 }}

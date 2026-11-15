@@ -134,10 +134,11 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 ### Phase 8 — Performance and cost
 
-- [ ] Snowflake: warehouse sizing, clustering keys, query profile of the slowest model
-- [ ] Databricks: Liquid Clustering, `OPTIMIZE`, Photon, serverless SQL warehouse sizing
-- [ ] Incremental strategies compared (`merge`, `insert_overwrite`, `microbatch`)
-- [ ] Before/after numbers in a short table
+- [x] Snowflake: clustering keys, query profile of the slowest model ([performance.md](docs/performance.md))
+- [x] Databricks: Liquid Clustering and `OPTIMIZE` measured on a serverless Photon warehouse
+- [ ] Warehouse sizing comparison on both platforms (only X-Small and 2X-Small measured)
+- [x] Incremental strategies compared (`merge`, `insert_overwrite`, `delete+insert`, `microbatch`)
+- [x] Before/after numbers in a short table
 
 ### Phase 9 — Show and tell
 

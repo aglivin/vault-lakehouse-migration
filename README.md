@@ -114,7 +114,7 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 ### Phase 6 — GitHub Actions CI/CD
 
-- [ ] PR workflow: `sqlfluff lint`, `dbt build --select state:modified+` (slim CI) against a PR schema
+- [x] PR workflow: `sqlfluff lint`, `dbt build --select state:modified+` (slim CI) against a PR schema
 - [ ] Main workflow: deploy to `prod` target, generate and publish dbt docs to GitHub Pages
 - [ ] Secrets in GitHub Actions secrets and environments; no secrets in YAML
 - [ ] Branch protection: required review, required green build

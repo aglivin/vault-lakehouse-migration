@@ -26,15 +26,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync
-      - run: uv run pytest -q
       - run: uv run dbt deps --project-dir dbt --profiles-dir dbt --target snowflake_dev
       - run: uv run sqlfluff lint dbt/models
       - run: uv run dbt parse --project-dir dbt --profiles-dir dbt --target snowflake_dev
+      - run: uv run pytest -q
 
   dbt-slim:
     needs: checks
     if: github.event_name == 'pull_request' && needs.checks.outputs.warehouse-secrets == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     concurrency:
       group: dbt-slim-${{ github.event.pull_request.number }}
     env:
@@ -47,6 +50,18 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync
       - run: uv run dbt deps
+      - name: Wait for a running prod deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          running() {
+            gh run list --repo "$GITHUB_REPOSITORY" --workflow deploy.yml --limit 5 \
+              --json status --jq '[.[] | select(.status != "completed")] | length'
+          }
+          while [ "$(running)" != 0 ]; do
+            echo "prod deploy in progress, waiting before deferring to prod"
+            sleep 30
+          done
       - name: Fetch prod manifest
         id: state
         run: |

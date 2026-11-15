@@ -43,6 +43,7 @@ The same query shows that the last load of each v1 satellite is before the cutov
 
 ## Known limitations and follow-ups
 
-- v2 phones (`account_phones`), interactions and settlements are loaded to raw only. They have no staging and no satellites yet.
+- v2 phones (`account_phones`) and interactions are loaded to raw only. They have no staging and no satellites yet.
+- Payments: v1 `payments` are staged in `stg_billing_v1__payments` and loaded to `nhl_payment_billing_v1`. v2 `settlements` are staged in `stg_billing_v2__settlements` and loaded to `nhl_payment_billing_v2`. The v2 feed repeats the v1 payments of migrated invoices, so `fct_payment` pairs them. It numbers the rows inside each source by (master invoice, payment date, amount) and joins v1 to v2 on those three values plus the number. A v1 row pairs with at most one v2 row, so two equal instalments of one invoice stay two payments. `dbt/analyses/payment_dedup_counts.sql` gives the counts, and `assert_fct_payment_counts_each_payment_once` checks them.
 - `eff_sat_customer_contract` reads v1 contracts only. Its v2 feed is a follow-up.
 - The phone set is empty for v2 customers. `sat_customer_phone_ma` stops at 2026-01-03, so a migrated customer keeps the last v1 phone set, and a v2-only customer has none.

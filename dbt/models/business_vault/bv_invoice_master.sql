@@ -1,5 +1,6 @@
 select
     hub.invoice_hk,
+    hub.load_datetime as loaded_at,
     coalesce(sal.invoice_hk, hub.invoice_hk) as master_invoice_hk,
     coalesce(master_hub.invoice_no, hub.invoice_no) as master_invoice_no
 from {{ ref('hub_invoice') }} as hub

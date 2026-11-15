@@ -1,3 +1,5 @@
+{{ config(tags=['cross_layer']) }}
+
 with after_cutover as (
     select
         max(load_datetime)

@@ -1,0 +1,32 @@
+models:
+  - name: tax__vat_by_invoice
+    description: >-
+      Tax data product, grain one row per invoice. vat_amount is the tax_amount of the vat line.
+      The sum of vat_amount equals the vat_total metric of the generator.
+      net_amount excludes VAT.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: invoice_no
+        description: Master invoice number.
+        data_type: string
+        data_tests: [unique, not_null]
+      - name: contract_no
+        description: Master contract number.
+        data_type: string
+        data_tests: [not_null]
+      - name: invoice_date
+        description: Invoice date.
+        data_type: date
+      - name: vat_rate
+        description: VAT rate of the vat line.
+        data_type: decimal(18,2)
+      - name: net_amount
+        description: Net amount of all lines, VAT excluded.
+        data_type: decimal(18,2)
+        data_tests: [not_null]
+      - name: vat_amount
+        description: VAT amount of the invoice.
+        data_type: decimal(18,2)
+        data_tests: [not_null]

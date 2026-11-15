@@ -5,3 +5,10 @@ seeds:
         load_date: date
         metric: string
         value: decimal(18, 2)
+  - name: as_of_dates
+    config:
+      column_types:
+        as_of_date: date
+    columns:
+      - name: as_of_date
+        data_tests: [unique, not_null]

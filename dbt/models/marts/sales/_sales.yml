@@ -1,0 +1,24 @@
+models:
+  - name: sales__contract_churn_month
+    description: >-
+      Sales data product, grain contract_month. started_contracts counts contracts by start month.
+      terminated_contracts counts terminated contracts by end month. Deleted contracts are excluded.
+      net_contract_change is started minus terminated.
+      The first month also counts every contract that started before the data window, so it is not a true monthly figure.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: contract_month
+        description: First day of the month.
+        data_type: date
+        data_tests: [unique, not_null]
+      - name: started_contracts
+        description: Contracts that start in the month.
+        data_type: integer
+      - name: terminated_contracts
+        description: Terminated contracts that end in the month.
+        data_type: integer
+      - name: net_contract_change
+        description: Started minus terminated contracts.
+        data_type: integer

@@ -119,19 +119,19 @@ Fill in `.env` after the copy. `dbt/profiles.yml` reads env vars only. For Datab
 
 ### Phase 4 — Business vault and marts
 
-- [ ] PIT tables and bridge tables for query performance
-- [ ] Star schema: `fct_invoice_line`, `fct_payment`, `dim_customer` (SCD2), `dim_contract`, `dim_tariff`, `dim_date`
-- [ ] Data products: billing, sales, tax, call centre
-- [ ] dbt docs and exposures; semantic definitions for the main metrics
-- [ ] Model contracts and versions on public marts
+- [x] PIT tables and bridge tables for query performance
+- [x] Star schema: `fct_invoice_line`, `fct_payment`, `dim_customer` (SCD2), `dim_contract`, `dim_tariff`, `dim_date`
+- [x] Data products: billing, sales, tax, call centre
+- [x] dbt docs and exposures; semantic definitions for the main metrics
+- [x] Model contracts and versions on public marts
 
 ### Phase 5 — Airflow
 
-- [ ] Astro project, local Airflow in Docker
-- [ ] DAG: ingest → `dbt build` per layer with Cosmos (one task per model, tests included)
+- [x] Astro project, local Airflow in Docker
+- [x] DAG: ingest → `dbt build` per layer with Cosmos (one task per model, tests included)
 - [ ] Sensors / dataset-driven scheduling between ingest and transform
 - [ ] Retries, SLAs, alerting on failure
-- [ ] Backfill of a past load date
+- [ ] Backfill of a past load date (load rule and replay: [docs/loading.md](docs/loading.md))
 
 ### Phase 6 — GitHub Actions CI/CD
 
@@ -153,10 +153,11 @@ Fill in `.env` after the copy. `dbt/profiles.yml` reads env vars only. For Datab
 
 ### Phase 8 — Performance and cost
 
-- [ ] Snowflake: warehouse sizing, clustering keys, query profile of the slowest model
-- [ ] Databricks: Liquid Clustering, `OPTIMIZE`, Photon, serverless SQL warehouse sizing
-- [ ] Incremental strategies compared (`merge`, `insert_overwrite`, `microbatch`)
-- [ ] Before/after numbers in a short table
+- [x] Snowflake: clustering keys, query profile of the slowest model ([performance.md](docs/performance.md))
+- [x] Databricks: Liquid Clustering and `OPTIMIZE` measured on a serverless Photon warehouse
+- [ ] Warehouse sizing comparison on both platforms (only X-Small and 2X-Small measured)
+- [x] Incremental strategies compared (`merge`, `insert_overwrite`, `delete+insert`, `microbatch`)
+- [x] Before/after numbers in a short table
 
 ### Phase 9 — Show and tell
 

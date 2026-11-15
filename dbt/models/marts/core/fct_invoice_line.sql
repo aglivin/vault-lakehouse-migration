@@ -1,3 +1,16 @@
+{% set clustering = none %}
+{% if var('perf_clustering', false) %}
+    {% set clustering = ['tariff_code', 'invoice_date'] %}
+{% endif %}
+
+{{
+    config(
+        cluster_by=clustering,
+        liquid_clustered_by=clustering,
+        event_time='invoice_date'
+    )
+}}
+
 with invoice_master as (
     select
         invoice_hk,
@@ -58,7 +71,8 @@ header_rows as (
         load_datetime,
         invoice_date,
         period_from,
-        period_to
+        period_to,
+        due_date
     from {{ ref('sat_invoice_details_billing_v1') }}
     union all
     select
@@ -66,7 +80,8 @@ header_rows as (
         load_datetime,
         issued_on as invoice_date,
         billing_from as period_from,
-        billing_to as period_to
+        billing_to as period_to,
+        payable_by as due_date
     from {{ ref('sat_invoice_details_billing_v2') }}
 ),
 
@@ -75,7 +90,8 @@ latest_header as (
         invoice_master.master_invoice_hk,
         header_rows.invoice_date,
         header_rows.period_from,
-        header_rows.period_to
+        header_rows.period_to,
+        header_rows.due_date
     from header_rows
     inner join invoice_master
         on header_rows.invoice_hk = invoice_master.invoice_hk
@@ -118,6 +134,7 @@ select
     cast(invoice_header.invoice_date as date) as invoice_date,
     cast(invoice_header.period_from as date) as period_from,
     cast(invoice_header.period_to as date) as period_to,
+    cast(invoice_header.due_date as date) as due_date,
     tariff_master.master_tariff_no as tariff_code,
     lines.line_type,
     cast(lines.kwh as decimal(18, 3)) as kwh,

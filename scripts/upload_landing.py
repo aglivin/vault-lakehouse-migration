@@ -16,26 +16,26 @@ def landing_files(out: Path, load_date: str) -> list[Path]:
     return sorted(out.glob(f"*_{version}/*/{load_date}.csv"))
 
 
-def stage() -> str:
-    return f"@{os.environ.get('SNOWFLAKE_DATABASE', 'VDWH_DEV')}.RAW.LANDING"
+def stage(raw_schema: str) -> str:
+    return f"@{os.environ.get('SNOWFLAKE_DATABASE', 'VDWH_DEV')}.{raw_schema.upper()}.LANDING"
 
 
-def volume() -> str:
-    return f"dbfs:/Volumes/{os.environ.get('DATABRICKS_CATALOG', 'vdwh_dev')}/raw/landing"
+def volume(raw_schema: str) -> str:
+    return f"dbfs:/Volumes/{os.environ.get('DATABRICKS_CATALOG', 'vdwh_dev')}/{raw_schema}/landing"
 
 
-def build_commands(target: str, load_date: str, out: Path) -> list[list[str]]:
+def build_commands(target: str, load_date: str, out: Path, raw_schema: str = "raw") -> list[list[str]]:
     commands = []
     for file in landing_files(out, load_date):
         entity_dir = file.parent
         system = entity_dir.parent.name
         if target == "snowflake":
-            destination = f"{stage()}/{system}/{entity_dir.name}/"
+            destination = f"{stage(raw_schema)}/{system}/{entity_dir.name}/"
             commands.append(
                 ["snow", "stage", "copy", str(file), destination, "--overwrite", "--connection", SNOWFLAKE_CONNECTION]
             )
         elif target == "databricks":
-            directory = f"{volume()}/{system}/{entity_dir.name}"
+            directory = f"{volume(raw_schema)}/{system}/{entity_dir.name}"
             destination = f"{directory}/{file.name}"
             commands.append(["databricks", "fs", "mkdirs", directory, "--profile", DATABRICKS_PROFILE])
             commands.append(
@@ -51,8 +51,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--target", choices=["snowflake", "databricks"], required=True)
     parser.add_argument("--load-date", type=date.fromisoformat, required=True)
     parser.add_argument("--out", type=Path, default=Path("data/out"))
+    parser.add_argument("--raw-schema", default="raw")
     args = parser.parse_args(argv)
-    commands = build_commands(args.target, args.load_date.isoformat(), args.out)
+    commands = build_commands(args.target, args.load_date.isoformat(), args.out, args.raw_schema)
     if not commands:
         print(f"no files for {args.load_date} in {args.out}", file=sys.stderr)
         return 1

@@ -3,6 +3,8 @@
 An end-to-end Data Vault 2.0 warehouse for a fictional energy utility, built with **dbt Core** on **Snowflake**,
 orchestrated by **Airflow**, deployed through **GitHub Actions**, and then migrated to **Databricks** with the same dbt project.
 
+dbt docs: https://aglivin.github.io/vault-lakehouse-migration/
+
 The repo has two goals:
 
 1. Close my hands-on gaps in the target stack.
@@ -115,9 +117,9 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 ### Phase 6 — GitHub Actions CI/CD
 
 - [x] PR workflow: `sqlfluff lint`, `dbt build --select state:modified+` (slim CI) against a PR schema
-- [ ] Main workflow: deploy to `prod` target, generate and publish dbt docs to GitHub Pages
-- [ ] Secrets in GitHub Actions secrets and environments; no secrets in YAML
-- [ ] Branch protection: required review, required green build
+- [x] Main workflow: deploy to `prod` target, generate and publish dbt docs to GitHub Pages ([dbt docs](https://aglivin.github.io/vault-lakehouse-migration/))
+- [x] Secrets in GitHub Actions secrets, no secrets in YAML; the deploy job runs in environment `prod`, limited to protected branches. In this demo CI and prod share one Snowflake account and credentials; prod is isolated by schema prefix
+- [x] Branch protection on `main`: required green build (`checks`, `no-ai-attribution`, branch up to date); 1 approval in team mode (not enforced in this single-author repo)
 - [x] Attribution check: build fails on AI co-author trailers
 
 ### Phase 7 — Migration Snowflake → Databricks

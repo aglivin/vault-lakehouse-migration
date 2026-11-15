@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platform: Airflow, CI/CD and migration</title>
+<style>
+:root{--bg:#f6f7fb;--fg:#111827;--mut:#4b5563;--card:#fff;--line:#d5dae3;--soft:#eef1f6;--accent:#4f46e5;--ok:#15803d;--bad:#b91c1c;--warn:#b45309;
+--af-bg:#e0e7ff;--af:#4f46e5;--gh-bg:#f3f4f6;--gh:#111827;--sf-bg:#e0f2fe;--sf:#0284c7;--db-bg:#fee2e2;--db:#dc2626;--hub-bg:#dbeafe;--hub:#2563eb;--link-bg:#dcfce7;--link:#16a34a;--sat-bg:#fef9c3;--sat:#ca8a04;--bv-bg:#e5e7eb;--bv:#4b5563;--mart-bg:#fde68a;--mart:#b45309;--raw-bg:#f5e6d3;--raw:#92400e;--shadow:0 8px 28px rgba(17,24,39,.10)}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mut:#9aa7b6;--card:#161b22;--line:#30363d;--soft:#1c232c;--accent:#8b93ff;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;
+--af-bg:#26294d;--af:#818cf8;--gh-bg:#1f2630;--gh:#c9d1d9;--sf-bg:#0b2a3d;--sf:#38bdf8;--db-bg:#3b1717;--db:#f87171;--hub-bg:#14284d;--hub:#60a5fa;--link-bg:#12301f;--link:#4ade80;--sat-bg:#3a3410;--sat:#facc15;--bv-bg:#2a2e35;--bv:#9ca3af;--mart-bg:#3a2a0a;--mart:#f59e0b;--raw-bg:#33241a;--raw:#d6a574;--shadow:0 8px 28px rgba(0,0,0,.45)}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;background:var(--soft);padding:1px 6px;border-radius:5px}
+.nav{position:sticky;top:0;z-index:30;background:var(--gh);display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;align-items:center}
+.nav a{color:#e5e7eb;text-decoration:none;font-size:16px;padding:6px 14px;border-radius:999px;border:1px solid transparent;transition:background .2s}
+.nav a:hover{background:rgba(255,255,255,.14)}
+.nav a.cur{background:#fff;color:#111827;font-weight:700}
+@media (prefers-color-scheme:dark){.nav{background:#010409;border-bottom:1px solid var(--line)}.nav a.cur{background:#e6edf3}}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 80px}
+.hero{padding:44px 0 10px}
+.hero h1{font-size:clamp(30px,5vw,50px);line-height:1.1;margin:0 0 14px;letter-spacing:-.02em}
+.hero p{max-width:860px;color:var(--mut);font-size:20px;margin:0 0 18px}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 6px}
+.chip{border-radius:999px;padding:6px 16px;font-size:16px;font-weight:600;border:2px solid var(--c);background:var(--b);color:var(--fg)}
+.k-af{--c:var(--af);--b:var(--af-bg)}.k-gh{--c:var(--gh);--b:var(--gh-bg)}.k-sf{--c:var(--sf);--b:var(--sf-bg)}.k-db{--c:var(--db);--b:var(--db-bg)}.k-hub{--c:var(--hub);--b:var(--hub-bg)}.k-link{--c:var(--link);--b:var(--link-bg)}.k-sat{--c:var(--sat);--b:var(--sat-bg)}.k-bv{--c:var(--bv);--b:var(--bv-bg)}.k-mart{--c:var(--mart);--b:var(--mart-bg)}.k-raw{--c:var(--raw);--b:var(--raw-bg)}
+.jump{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:26px 0 0}
+.jump a{display:block;text-decoration:none;color:var(--fg);background:var(--card);border:1px solid var(--line);border-top:6px solid var(--c);border-radius:14px;padding:14px 18px;transition:transform .2s,box-shadow .2s}
+.jump a:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.jump b{display:block;font-size:20px}.jump span{color:var(--mut);font-size:16px}
+section{margin-top:64px}
+h2{font-size:clamp(26px,3.6vw,36px);margin:0 0 8px;letter-spacing:-.01em}
+.lead{color:var(--mut);max-width:900px;margin:0 0 18px}
+.sim{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+.bar{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;margin-bottom:12px}
+.bar label{display:flex;align-items:center;gap:10px;font-weight:600}
+.bar select{font:inherit;font-size:17px;padding:8px 12px;border:2px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg);max-width:100%}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btns button{font:inherit;font-size:17px;font-weight:600;padding:9px 18px;border-radius:10px;border:2px solid var(--line);background:var(--soft);color:var(--fg);cursor:pointer;transition:transform .15s,background .2s,border-color .2s}
+.btns button:hover:not(:disabled){transform:translateY(-2px);border-color:var(--accent)}
+.btns button.go{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-color-scheme:dark){.btns button.go{color:#0d1117}}
+.btns button.on{border-color:var(--ok);color:var(--ok)}
+.btns button:disabled{opacity:.4;cursor:default}
+button:focus-visible,select:focus-visible,.node:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.count{margin-left:auto;color:var(--mut);font-weight:600}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.pills button{font:inherit;font-size:15px;min-width:42px;height:42px;border-radius:999px;border:2px solid var(--line);background:var(--card);color:var(--mut);cursor:pointer;transition:all .2s}
+.pills button:hover{border-color:var(--accent);color:var(--fg)}
+.pills button.past{background:var(--soft);color:var(--fg)}
+.pills button.now{background:var(--accent);border-color:var(--accent);color:#fff;transform:scale(1.12)}
+@media (prefers-color-scheme:dark){.pills button.now{color:#0d1117}}
+.stage{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.stage svg{display:block;width:100%;min-width:780px;height:auto}
+.band{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:6 6}
+.bandt{fill:var(--mut);font-size:15px;font-weight:700}
+.edge{fill:none;stroke:var(--mut);stroke-width:2;opacity:.55;transition:all .35s}
+.edge.dashed{stroke-dasharray:7 6}
+.edge.dim{opacity:.18}
+.edge.done{opacity:.9;stroke:var(--fg)}
+.edge.on{opacity:1;stroke:var(--accent);stroke-width:4;stroke-dasharray:10 7;animation:flow .7s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-17}}
+.arrow{fill:var(--mut)}
+.node{cursor:pointer;transition:opacity .35s;outline:none}
+.node rect{fill:var(--b);stroke:var(--c);stroke-width:2.5;transition:stroke-width .3s,filter .3s}
+.node:hover rect{stroke-width:4;filter:drop-shadow(0 4px 8px rgba(0,0,0,.25))}
+.node .lb{fill:var(--fg);font-size:15.5px;font-weight:700}
+.node .sb{fill:var(--mut);font-size:12.5px}
+.node.dim{opacity:.38}
+.node.seen{opacity:1}
+.node.lit rect{stroke-width:6;filter:drop-shadow(0 0 10px var(--c))}
+.node.fail rect{stroke:var(--bad);stroke-width:6;fill:color-mix(in srgb,var(--bad) 18%,var(--card));filter:drop-shadow(0 0 10px var(--bad))}
+.node.sel rect{stroke-dasharray:8 5;stroke-width:5}
+.cols{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;margin-top:14px}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+.explain,.data{border:1px solid var(--line);border-radius:14px;padding:16px 20px;background:var(--bg);min-height:210px}
+.explain h3{margin:0 0 8px;font-size:23px;line-height:1.25}
+.explain p{margin:8px 0}
+.explain .y{border-left:5px solid var(--accent);padding-left:12px;color:var(--fg)}
+.explain .lab{display:inline-block;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-right:8px}
+.files{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.files a{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--soft);color:var(--fg);text-decoration:none;padding:4px 10px;border-radius:8px;border:1px solid var(--line);transition:border-color .2s}
+.files a:hover{border-color:var(--accent)}
+.tag{display:inline-block;padding:2px 12px;border-radius:999px;font-size:14px;font-weight:700;background:var(--b);border:2px solid var(--c);margin-bottom:8px}
+.hint{color:var(--mut)}
+table{border-collapse:collapse;width:100%;font-size:16px}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft)}
+td{background:var(--card)}
+.tw{overflow-x:auto}
+.st{font-weight:700;white-space:nowrap}
+.st.ok{color:var(--ok)}.st.run{color:var(--accent)}.st.wait{color:var(--warn)}.st.fail{color:var(--bad)}.st.idle{color:var(--mut)}
+.log{margin:12px 0 0;background:#0b1220;color:#d6e2f5;padding:12px 14px;border-radius:10px;font:14px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+.log .e{color:#fca5a5}
+.cap{font-weight:700;margin:0 0 8px;color:var(--mut);font-size:14px;text-transform:uppercase;letter-spacing:.06em}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px}
+.fact{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+.fact b{display:block;font-size:30px;line-height:1.2}
+.fact span{color:var(--mut);font-size:15px}
+footer{margin-top:70px;color:var(--mut);font-size:16px;border-top:1px solid var(--line);padding-top:18px}
+@media (max-width:640px){body{font-size:17px}.sim{padding:12px}.count{margin-left:0;width:100%}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<nav class="nav" aria-label="Project pages">
+<a href="index.html">Project map</a>
+<a href="data-flow.html">Data flow</a>
+<a href="platform.html" class="cur" aria-current="page">Platform</a>
+<a href="../index.html">dbt docs</a>
+<a href="https://github.com/aglivin/vault-lakehouse-migration">GitHub repo</a>
+</nav>
+<div class="wrap">
+<header class="hero">
+<h1>Orchestration, CI/CD and migration</h1>
+<p>Three simulators show how the platform around the Data Vault runs: Airflow moves one load date at a time, GitHub Actions builds only what a PR changes, and the same dbt project moves from Snowflake to Databricks. Press <b>Step</b>, click a pill to jump, or click any box to read what it does.</p>
+<div class="chips">
+<span class="chip k-af">Airflow 3.3 + Cosmos</span>
+<span class="chip k-gh">GitHub Actions</span>
+<span class="chip k-sf">Snowflake</span>
+<span class="chip k-db">Databricks</span>
+</div>
+<div class="jump">
+<a href="#airflow" class="k-af"><b>1. Airflow</b><span>ingest, asset event, transform, retry, backfill</span></a>
+<a href="#cicd" class="k-gh"><b>2. CI/CD</b><span>slim CI with defer, deploy, docs on Pages</span></a>
+<a href="#migration" class="k-db"><b>3. Migration</b><span>dispatch macros, recon, go/no-go, rollback</span></a>
+</div>
+</header>
+
+<section id="airflow">
+<h2>1. Airflow: one load date per run</h2>
+<p class="lead">Two DAGs. <code>vdwh_ingest</code> loads the raw files of one day and publishes an asset event. <code>vdwh_transform</code> starts on that event and builds the layers with Cosmos, one task per dbt model.</p>
+<div class="sim" id="sim-airflow"></div>
+</section>
+
+<section id="cicd">
+<h2>2. CI/CD: build only what changed</h2>
+<p class="lead">A PR builds the changed model and its children in its own schema <code>ci_pr_N</code>, and reads everything else from prod with <code>--defer</code>. After the merge the deploy builds prod and publishes the dbt docs.</p>
+<div class="sim" id="sim-cicd"></div>
+</section>
+
+<section id="migration">
+<h2>3. Migration: one project, two platforms</h2>
+<p class="lead">The models contain no <code>if target.type</code>. Dispatch macros hold the platform SQL. A reconciliation model compares both platforms table by table before any consumer moves.</p>
+<div class="sim" id="sim-migration"></div>
+<div class="facts">
+<div class="fact k-sf"><b>0</b><span>differences in 35 tables (Snowflake vs Databricks, <code>data/recon</code>)</span></div>
+<div class="fact k-mart"><b>4421</b><span>invoices, net total 461626.22, equal on both targets</span></div>
+<div class="fact k-hub"><b>72 / 226</b><span>dbt models and tests</span></div>
+<div class="fact k-af"><b>14 days</b><span>rollback window, Snowflake loads keep running</span></div>
+</div>
+</section>
+
+<footer>Data is synthetic. Every path in the simulators links to the file on GitHub. Prose docs: <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/airflow.md">docs/airflow.md</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/migration.md">docs/migration.md</a>, <a href="https://github.com/aglivin/vault-lakehouse-migration/blob/main/docs/cutover.md">docs/cutover.md</a>.</footer>
+</div>
+
+<script>
+const GH='https://github.com/aglivin/vault-lakehouse-migration/blob/main/';
+const W=1100;
+const N=(id,x,y,w,h,label,sub,kind,file,info)=>({id,x,y,w,h,label,sub,kind,file,info});
+const S=(t,lit,w,y,f,o)=>Object.assign({t,lit,w,y,f:f||[],fail:[],tbl:null,log:[]},o||{});
+const T=(h,r)=>({h,r});
+const ST=(k,s)=>k+'|'+s;
+
+const airflow={
+  id:'airflow',H:420,
+  bands:[{x:8,y:10,w:1084,h:118,label:'vdwh_ingest  (@daily, 2026-01-01 to 2026-01-05, max_active_runs 1)'},{x:8,y:170,w:1084,h:118,label:'vdwh_transform  (schedule: asset, max_active_runs 1, Cosmos task groups)'}],
+  nodes:[
+    N('lr',20,42,210,70,'load_raw','dbt run-operation','af','dbt/macros/raw/load_raw.sql','Runs dbt run-operation load_raw with the logical date as load_date. It copies that day landing files into the raw tables. The load is idempotent: a rerun of a date adds no raw rows.'),
+    N('wf',280,42,260,70,'wait_for_idle_transform','sensor, reschedule, 30 s','af','airflow/dags/vdwh_ingest.py','A sensor that returns true when vdwh_transform has no queued or running run. It keeps events from merging while a transform run is active.'),
+    N('pub',590,42,220,70,'publish_raw_landed','emits the asset event','af','airflow/dags/vdwh_ingest.py','Emits one event on the asset vdwh/raw_landed with the extra {load_date: ds}.'),
+    N('ast',860,42,220,70,'vdwh/raw_landed','Asset','gh','airflow/include/vdwh_assets.py','The asset is the contract between the two DAGs. A new event schedules vdwh_transform.'),
+    N('res',11,204,140,70,'resolve_load_date','reads asset events','af','airflow/include/vdwh_assets.py','Reads triggering_asset_events and returns the load date. It fails, and nothing is built, when there is no event, an event has no load_date, or the run has two different dates.'),
+    N('seed',165,204,140,70,'dbt_seed','seeds','af','airflow/dags/vdwh_transform.py','Loads the dbt seeds, for example the expected totals.'),
+    N('stg',319,204,140,70,'staging','Cosmos group','hub','dbt/models/staging','One Cosmos task per staging model, each with its tests. Selection: path:models/staging.'),
+    N('rv',473,204,140,70,'raw_vault','Cosmos group','link','dbt/models/raw_vault','Hubs, links, same-as links and satellites. Starts after staging is done.'),
+    N('bv',627,204,140,70,'business_vault','Cosmos group','bv','dbt/models/business_vault','Master models, PIT and bridge tables.'),
+    N('mt',781,204,140,70,'marts','Cosmos group','mart','dbt/models/marts','Star schema and the data products.'),
+    N('xl',935,204,154,70,'cross_layer_tests','tag:cross_layer','sat','dbt/tests','Tests that need several layers at once. They run last, after every layer exists.'),
+    N('al',640,320,440,70,'notify_failure','VDWH ALERT line, optional webhook','bad_','airflow/include/vdwh_alerts.py','on_failure_callback on every task of both DAGs. It writes one VDWH ALERT line after the last retry. A webhook is off by default.')
+  ],
+  edges:[['lr','wf'],['wf','pub'],['pub','ast'],['ast','res',{mid:150}],['res','seed'],['seed','stg'],['stg','rv'],['rv','bv'],['bv','mt'],['mt','xl'],['mt','al',{dashed:true}]],
+  scenarios:[
+  {name:'One day end to end',intro:'Follow load date 2026-01-05 from the landing files to the tested marts. Press Step.',steps:[
+    S('1. load_raw lands one day',['lr'],'Task load_raw runs dbt run-operation load_raw with load_date 2026-01-05 (the logical date, {{ ds }}). It copies that day files from the landing area into the raw tables.','Ingest only lands data. It does not build the vault, so a failed build never blocks a load.',['airflow/dags/vdwh_ingest.py','dbt/macros/raw/load_raw.sql'],{tbl:T(['DAG','Logical date','State'],[['vdwh_ingest','2026-01-05',ST('run','running')],['vdwh_transform','-',ST('idle','no run')]])}),
+    S('2. The sensor waits for a quiet transform',['wf'],'wait_for_idle_transform pokes every 30 seconds in reschedule mode. It returns true when vdwh_transform has no queued or running run.','vdwh_transform has max_active_runs 1. Events that arrive while it runs would wait and merge into one run, and resolve_load_date would fail.',['airflow/dags/vdwh_ingest.py'],{tbl:T(['DAG','Logical date','State'],[['vdwh_ingest','2026-01-05',ST('ok','sensor passed')],['vdwh_transform','-',ST('idle','0 queued or running')]])}),
+    S('3. publish_raw_landed emits the event',['pub'],'The task emits one event on the asset vdwh/raw_landed with the extra {load_date: 2026-01-05}.','The asset links the two DAGs. There is no cron guess and nobody triggers the transform by hand.',['airflow/dags/vdwh_ingest.py','airflow/include/vdwh_assets.py'],{log:['event asset=vdwh/raw_landed extra={"load_date": "2026-01-05"}']}),
+    S('4. The asset starts vdwh_transform',['ast','res'],'The new event schedules vdwh_transform. resolve_load_date reads triggering_asset_events and returns 2026-01-05.','One run builds exactly one load date. All dbt tasks of the run read the date with xcom_pull on this task.',['airflow/include/vdwh_assets.py','airflow/dags/vdwh_transform.py'],{tbl:T(['DAG','Logical date','State'],[['vdwh_ingest','2026-01-05',ST('ok','success')],['vdwh_transform','event 2026-01-05',ST('run','running')]])}),
+    S('5. dbt_seed',['seed'],'DbtSeedLocalOperator loads the seeds.','The expected totals are a seed, so the tests can compare the marts to them.',['airflow/dags/vdwh_transform.py']),
+    S('6. staging group',['stg'],'Cosmos renders one Airflow task per staging model, each with its tests. The group starts after dbt_seed.','Cosmos runs one dbt process per model. Airflow shows, retries and clears one model instead of the whole build.',['airflow/dags/vdwh_transform.py','dbt/models/staging']),
+    S('7. raw_vault group',['rv'],'The raw vault group starts when staging is done.','Layers are chained in the order staging, raw_vault, business_vault, marts, so a layer never reads a half-built parent.',['dbt/models/raw_vault']),
+    S('8. business_vault group',['bv'],'Master models, PIT and bridge tables are built.','They read the raw vault of this load date.',['dbt/models/business_vault']),
+    S('9. marts group',['mt'],'The star schema and the four data products are built.','This is the layer that consumers read.',['dbt/models/marts']),
+    S('10. cross_layer_tests',['xl'],'DbtTestLocalOperator runs the tests with tag cross_layer and the same load_date. Indirect selection is cautious.','Tests that span layers need every layer to exist. The DAG ends green only when they pass.',['airflow/dags/vdwh_transform.py','dbt/tests'],{tbl:T(['DAG','Logical date','State'],[['vdwh_ingest','2026-01-05',ST('ok','success')],['vdwh_transform','event 2026-01-05',ST('ok','success')]])})
+  ]},
+  {name:'A task fails: retry and alert',intro:'The marts group fails. Watch the retries, the alert line and what stays unbuilt.',steps:[
+    S('1. Three layers succeed',['res','seed','stg','rv','bv'],'The run starts as usual and builds staging, raw_vault and business_vault.','The failure in the next step happens with a half-built run. That is the case alerts exist for.',['airflow/dags/vdwh_transform.py']),
+    S('2. A marts model fails on try 1',['mt'],'One model task in the marts group fails.','Every task has retries 2 and retry_delay 1 minute, so it has 3 tries in total.',['airflow/dags/vdwh_transform.py'],{fail:['mt'],log:['marts task failed  try_number=1 of 3','state: up_for_retry, next try in 1 minute'],tbl:T(['Task','Try','State'],[['marts model','1',ST('fail','failed')],['cross_layer_tests','-',ST('idle','waiting')]])}),
+    S('3. Retry after one minute',['mt'],'Airflow runs the same task again after 1 minute. Tries 2 and 3 fail the same way in this example.','A retry covers a short warehouse hiccup. A real defect fails all tries and goes to the alert.',['airflow/dags/vdwh_transform.py'],{fail:['mt'],log:['marts task failed  try_number=2 of 3','marts task failed  try_number=3 of 3'],tbl:T(['Task','Try','State'],[['marts model','3',ST('fail','failed')],['cross_layer_tests','-',ST('idle','waiting')]])}),
+    S('4. on_failure_callback writes the alert',['mt','al'],'After the last retry notify_failure runs and writes one line to the task log. A webhook (Slack or any URL that takes {"text": ...}) is off by default.','One line with dag_id, task_id, run_id, try_number and error is easy to grep and to forward.',['airflow/include/vdwh_alerts.py','docs/airflow.md'],{fail:['mt'],log:['VDWH ALERT: task failed dag_id=... task_id=... run_id=... try_number=... error=...']}),
+    S('5. Downstream does not run',['xl'],'cross_layer_tests has an upstream that failed, so it does not run. The run is marked failed.','A test on a broken build would only add noise.',['airflow/dags/vdwh_transform.py'],{fail:['mt','xl'],tbl:T(['Task','State'],[['marts model',ST('fail','failed')],['cross_layer_tests',ST('idle','upstream_failed')]])}),
+    S('6. Deadline alert for slow runs',['al'],'Airflow 3 has no SLA. Both DAGs use a Deadline Alert on DAGRUN_QUEUED_AT: 75 minutes for vdwh_ingest and 60 minutes for vdwh_transform. A late run makes the triggerer write a log line.','The ingest deadline is longer because ingest waits in the sensor for a running transform.',['airflow/include/vdwh_alerts.py','airflow/dags/vdwh_ingest.py'],{log:['VDWH ALERT: deadline missed dag_id=... run_id=... deadline_time=...']}),
+    S('7. Fix, clear, rerun',['mt','xl'],'After the fix, clear the failed task in the Airflow UI. Airflow reruns it, and the tasks after it run when it succeeds.','The raw load is idempotent, so a rerun adds no raw rows.',['docs/airflow.md'],{tbl:T(['Task','State'],[['marts model',ST('ok','success')],['cross_layer_tests',ST('ok','success')]])})
+  ]},
+  {name:'Backfill of 5 dates',intro:'astro dev run backfill create queues 5 ingest runs. Watch how the sensor keeps each date in its own transform run.',steps:[
+    S('1. Create the backfill',['lr'],'Command: astro dev run backfill create --dag-id vdwh_ingest --from-date 2026-01-01 --to-date 2026-01-05 --max-active-runs 1. Airflow 3 runs backfills in the scheduler.','Dates must be loaded in order: the raw vault is insert-only, and a later date must not land before an earlier one.',['docs/airflow.md'],{tbl:T(['Date','vdwh_ingest','vdwh_transform'],[['2026-01-01',ST('wait','queued'),ST('idle','-')],['2026-01-02',ST('wait','queued'),ST('idle','-')],['2026-01-03',ST('wait','queued'),ST('idle','-')],['2026-01-04',ST('wait','queued'),ST('idle','-')],['2026-01-05',ST('wait','queued'),ST('idle','-')]])}),
+    S('2. Date 01-01 passes everything',['lr','wf','pub','ast','res'],'Ingest loads 2026-01-01, the sensor sees an idle transform, the event is published and a transform run starts for that date.','The first date has nothing in front of it.',['airflow/dags/vdwh_ingest.py'],{tbl:T(['Date','vdwh_ingest','vdwh_transform'],[['2026-01-01',ST('ok','success'),ST('run','running')],['2026-01-02',ST('wait','queued'),ST('idle','-')],['2026-01-03',ST('wait','queued'),ST('idle','-')],['2026-01-04',ST('wait','queued'),ST('idle','-')],['2026-01-05',ST('wait','queued'),ST('idle','-')]]),log:['event load_date=2026-01-01']}),
+    S('3. Date 01-02 loads, then waits',['lr','wf'],'The load of 2026-01-02 is fast. The sensor sees the transform of 2026-01-01 still running and reschedules itself every 30 seconds.','In a local run ingest took about 20 seconds and a transform run about 4 minutes (observed, not a benchmark). Without the wait, events would pile up.',['docs/airflow.md'],{tbl:T(['Date','vdwh_ingest','vdwh_transform'],[['2026-01-01',ST('ok','success'),ST('run','running')],['2026-01-02',ST('wait','sensor waits'),ST('idle','-')],['2026-01-03',ST('wait','queued'),ST('idle','-')],['2026-01-04',ST('wait','queued'),ST('idle','-')],['2026-01-05',ST('wait','queued'),ST('idle','-')]])}),
+    S('4. The transform of 01-01 ends: 01-02 goes',['wf','pub','ast','res'],'The sensor of 2026-01-02 passes, the event is published and the next transform run starts with that single date.','max_active_runs 1 on both DAGs gives one event per transform run, also in a backfill.',['airflow/dags/vdwh_transform.py'],{tbl:T(['Date','vdwh_ingest','vdwh_transform'],[['2026-01-01',ST('ok','success'),ST('ok','success')],['2026-01-02',ST('ok','success'),ST('run','running')],['2026-01-03',ST('wait','sensor waits'),ST('idle','-')],['2026-01-04',ST('wait','queued'),ST('idle','-')],['2026-01-05',ST('wait','queued'),ST('idle','-')]]),log:['event load_date=2026-01-02']}),
+    S('5. 01-03 and 01-04 repeat the pattern',['wf','pub','ast','res','seed','stg','rv','bv','mt'],'Each date waits for the transform before it, then gets its own transform run.','Every transform run has exactly one load_date, so resolve_load_date always succeeds.',['airflow/dags/vdwh_transform.py'],{tbl:T(['Date','vdwh_ingest','vdwh_transform'],[['2026-01-01',ST('ok','success'),ST('ok','success')],['2026-01-02',ST('ok','success'),ST('ok','success')],['2026-01-03',ST('ok','success'),ST('ok','success')],['2026-01-04',ST('ok','success'),ST('run','running')],['2026-01-05',ST('wait','sensor waits'),ST('idle','-')]])}),
+    S('6. 01-05 closes the backfill',['xl'],'The last date runs and cross_layer_tests end green. Five transform runs, one per load date.','The end state is the latest date built on top of all earlier ones.',['docs/airflow.md'],{tbl:T(['Date','vdwh_ingest','vdwh_transform'],[['2026-01-01',ST('ok','success'),ST('ok','success')],['2026-01-02',ST('ok','success'),ST('ok','success')],['2026-01-03',ST('ok','success'),ST('ok','success')],['2026-01-04',ST('ok','success'),ST('ok','success')],['2026-01-05',ST('ok','success'),ST('ok','success')]])}),
+    S('7. What the sensor prevents',['ast','res'],'Without the sensor, the events of three or more dates wait together and Airflow gives them all to the next transform run. resolve_load_date sees several dates and fails; nothing is built.','This is why the sensor exists. Recovery: clear the ingest run of each date, one date at a time and in order.',['airflow/include/vdwh_assets.py','docs/airflow.md'],{fail:['res'],log:['ValueError: vdwh/raw_landed: expected exactly one load_date in triggering asset events, got [...]; trigger vdwh_ingest for the date instead'],tbl:T(['Date','vdwh_ingest','vdwh_transform'],[['2026-01-02',ST('ok','success'),ST('idle','merged')],['2026-01-03',ST('ok','success'),ST('idle','merged')],['2026-01-04',ST('ok','success'),ST('fail','one failed run')]])})
+  ]}]
+};
+
+const cicd={
+  id:'cicd',H:430,
+  bands:[],
+  nodes:[
+    N('pr',20,30,220,70,'Pull request','changes one model','gh','dbt/models/marts/core/dim_tariff.sql','A branch with a change to one model, here dim_tariff. Every PR runs ci.yml; the attribution job checks the history.'),
+    N('chk',300,30,240,70,'checks job','lint, parse, pytest','gh','.github/workflows/ci.yml','uv sync, dbt deps, sqlfluff lint dbt/models, dbt parse, pytest. It uses dummy connection values, so it needs no warehouse.'),
+    N('slim',600,30,240,70,'dbt-slim job','build in ci_pr_N','gh','.github/workflows/ci.yml','Runs only on pull requests when the warehouse secrets exist. One job per PR at a time. The target is snowflake_ci and the schema is ci_pr_<number>.'),
+    N('mrg',900,30,180,70,'Merge','only when green','gh','.github/workflows/ci.yml','The PR is merged only when every check is green.'),
+    N('man',540,175,240,70,'prod manifest.json','published on Pages','gh','.github/workflows/ci.yml','The manifest of the last prod build, downloaded from the Pages site. state:modified compares the PR with it.'),
+    N('sch',830,175,140,70,'ci_pr_N','schema on Snowflake','sf','dbt/macros/ci/drop_pr_schemas.sql','A schema that belongs to one PR. Everything the PR builds lands here, never in prod.'),
+    N('drp',990,175,90,70,'drop','cleanup','sf','dbt/macros/ci/drop_pr_schemas.sql','Runs always at the end of the job. The macro refuses any schema that does not match ci_pr_<number>.'),
+    N('dep',20,330,220,70,'deploy.yml','on push to main','gh','.github/workflows/deploy.yml','Runs on every push to main and by hand. Environment prod. Concurrency group deploy-prod, no cancel, so deploys queue.'),
+    N('bp',300,330,240,70,'build-prod','snowflake_prod','sf','scripts/build_by_load_date.sh','Runs scripts/build_by_load_date.sh without a selection: all five load dates, one dbt build per date.'),
+    N('doc',600,330,240,70,'dbt docs generate','last load date','gh','.github/workflows/deploy.yml','Generates the dbt docs with the last load date as variable.'),
+    N('pgs',900,330,180,70,'GitHub Pages','docs + manifest','gh','.github/workflows/deploy.yml','The publish-docs job deploys the site: dbt docs, catalog, manifest and run_results. The new manifest.json is the baseline for the next PR.')
+  ],
+  edges:[['pr','chk'],['chk','slim'],['slim','mrg'],['man','slim'],['slim','sch',{mid:125,ax:60}],['sch','drp'],['mrg','dep',{mid:150}],['dep','bp'],['bp','doc'],['doc','pgs'],['pgs','man',{dashed:true,mid:280}]],
+  scenarios:[
+  {name:'PR with one changed model',intro:'A developer changes dim_tariff. Follow the PR through CI, the merge and the deploy.',steps:[
+    S('1. Open a PR',['pr'],'The developer changes dbt/models/marts/core/dim_tariff.sql and opens a PR. ci.yml starts on pull_request.','Small PRs, one logical step each. Slim CI makes small PRs cheap.',['dbt/models/marts/core/dim_tariff.sql','.github/workflows/ci.yml'],{tbl:T(['Changed file','Models'],[['dbt/models/marts/core/dim_tariff.sql','1 (dim_tariff)']])}),
+    S('2. checks job: no warehouse needed',['chk'],'The job installs with uv, runs dbt deps, lints the SQL, parses the project and runs the Python tests. Connection values are dummies.','Parse proves the project compiles on the Snowflake adapter. It is fast and needs no secret.',['.github/workflows/ci.yml'],{tbl:T(['Step','Command'],[['install','uv sync'],['packages','dbt deps'],['lint','sqlfluff lint dbt/models'],['parse','dbt parse --target snowflake_dev'],['tests','pytest -q']])}),
+    S('3. Gate: secrets and one job per PR',['slim'],'dbt-slim needs the checks job, a pull request event and the warehouse secrets. A concurrency group per PR cancels nothing but keeps one job per PR.','A run without warehouse secrets still gets the cheap checks.',['.github/workflows/ci.yml'],{log:['if: event == pull_request && warehouse-secrets == true','DBT_TARGET=snowflake_ci  DBT_SCHEMA=ci_pr_<number>']}),
+    S('4. Wait for a running prod deploy',['slim','dep'],'The job lists the last deploy.yml runs and sleeps 30 seconds until none is running.','A deploy replaces the manifest on Pages. Deferring to a half-published prod would compare against the wrong state.',['.github/workflows/ci.yml'],{log:['prod deploy in progress, waiting before deferring to prod']}),
+    S('5. Download the prod manifest',['man','slim'],'curl fetches manifest.json from the Pages URL. Found: mode slim.','The manifest says what prod looks like now. State comparison needs it.',['.github/workflows/ci.yml'],{log:['prod manifest found, building state:modified+ with defer']}),
+    S('6. Slim selection with defer',['slim'],'The build selects the modified model, its children, and the views next to them. Everything else is read from prod with --defer --state.','Only a small part of the 72 models builds, but it reads real prod parents.',['.github/workflows/ci.yml','scripts/build_by_load_date.sh'],{tbl:T(['Selector','Meaning'],[['state:modified+','dim_tariff and all its children'],['1+state:modified+,config.materialized:view','views among the modified models, their children and direct parents'],['--defer --state','models that are not built are read from prod']])}),
+    S('7. One build per load date in ci_pr_N',['slim','sch'],'build_by_load_date.sh runs dbt build for each of the five load dates. The first date uses --full-refresh. Tests run only after the last date.','The raw vault is insert-only, so history must grow date by date, the same way as in prod.',['scripts/build_by_load_date.sh'],{tbl:T(['Load date','Flags'],[['2026-01-01','--full-refresh --exclude-resource-type test'],['2026-01-02','--exclude-resource-type test'],['2026-01-03','--exclude-resource-type test'],['2026-01-04','--exclude-resource-type test'],['2026-01-05','all tests']])}),
+    S('8. Drop the PR schema',['sch','drp'],'The last step always runs, also after a failure: dbt run-operation drop_pr_schemas.','No PR leaves tables behind. The macro raises an error for any schema that is not ci_pr_<number>, so it cannot drop prod.',['dbt/macros/ci/drop_pr_schemas.sql']),
+    S('9. Merge when green',['mrg'],'All checks are green, so the PR is merged. Nobody merges on red.','Every PR is green on its own before it enters main.',['.github/workflows/ci.yml']),
+    S('10. Deploy starts on main',['dep'],'The push to main starts deploy.yml in the prod environment. Concurrent deploys wait in the group deploy-prod.','A single writer to prod at a time.',['.github/workflows/deploy.yml']),
+    S('11. Build prod, date by date',['bp'],'build-prod runs scripts/build_by_load_date.sh on snowflake_prod: the same script as CI, without a selection.','CI and prod run the same code path, so a green CI means the same build in prod.',['scripts/build_by_load_date.sh','.github/workflows/deploy.yml']),
+    S('12. Generate the dbt docs',['doc'],'dbt docs generate runs with the last load date as variable.','Docs and lineage always show the state that was just built.',['.github/workflows/deploy.yml']),
+    S('13. Publish to Pages',['pgs','man'],'The site is uploaded and deployed to GitHub Pages. manifest.json on Pages is now the new baseline.','The next PR compares itself to this exact build.',['.github/workflows/deploy.yml'],{log:['published: dbt docs, catalog.json, manifest.json, run_results.json']})
+  ]},
+  {name:'No baseline yet: full build',intro:'The first PR, or Pages is empty. See how slim CI falls back to a full build.',steps:[
+    S('1. A PR with warehouse secrets',['pr','chk','slim'],'checks pass and dbt-slim starts.','Same entry as before.',['.github/workflows/ci.yml']),
+    S('2. A deploy is running',['slim','dep'],'The job waits and polls every 30 seconds until the deploy is completed.','It never defers to a manifest that is being replaced.',['.github/workflows/ci.yml'],{log:['prod deploy in progress, waiting before deferring to prod']}),
+    S('3. No manifest on Pages',['man','slim'],'curl fails. The job sets mode full.','Without a baseline there is nothing to compare against.',['.github/workflows/ci.yml'],{fail:['man'],log:['no prod manifest, building the whole project']}),
+    S('4. Whole project in ci_pr_N',['slim','sch'],'No selection and no defer: build_by_load_date.sh builds all models for all five load dates.','Slower but correct. After the first deploy the manifest exists and PRs get fast.',['scripts/build_by_load_date.sh']),
+    S('5. Clean up',['sch','drp'],'drop_pr_schemas removes ci_pr_N.','Same cleanup in both modes.',['dbt/macros/ci/drop_pr_schemas.sql'])
+  ]}]
+};
+
+const migration={
+  id:'migration',H:560,
+  bands:[],
+  nodes:[
+    N('models',400,20,300,70,'dbt models (72)','no if target.type','hub','dbt/models','The same SQL for both platforms. Where behaviour differs, the model calls a macro.'),
+    N('disp',350,130,400,70,'adapter.dispatch macros','month_trunc, hex_key, copy_into_raw','hub','dbt/macros/compat','Each macro picks the SQL by adapter: snowflake__, databricks__ or default__.'),
+    N('sfb',40,245,300,70,'dbt build  snowflake_dev','key-pair auth','sf','dbt/profiles.yml','Builds the project one load date at a time on Snowflake.'),
+    N('dbb',760,245,300,70,'dbt build  databricks_dev','Unity Catalog vdwh_dev, Delta','db','dbt/profiles.yml','Builds the same project on Databricks, Delta tables in the catalog vdwh_dev.'),
+    N('sft',40,360,300,70,'Snowflake tables','system of record','sf','dbt/models/recon/recon__table_stats.sql','Hash keys are BINARY. This platform stays the system of record until the cut-over.'),
+    N('cmp',400,360,300,70,'compare_recon.py','recon__table_stats, 35 tables','mart','scripts/compare_recon.py','Compares every cell of the recon model of both platforms. Exit 0 means no differences.'),
+    N('dbt_',760,360,300,70,'Databricks tables','Delta','db','dbt/models/recon/recon__table_stats.sql','Hash keys are upper-case hex STRING. The macro hex_key makes both sides comparable.'),
+    N('csf',40,475,300,70,'Consumers on Snowflake','today','sf','docs/cutover.md','BI dashboards, exports and ad-hoc queries.'),
+    N('gate',400,475,300,70,'go / no-go','N clean load dates','gh','docs/cutover.md','Go when recon shows 0 differences for N consecutive load dates. In this repo N = 5. Any difference is no-go and N restarts from 0.'),
+    N('cdb',760,475,300,70,'Consumers on Databricks','after the switch','db','docs/cutover.md','Consumers move in groups: marts, business vault, raw vault and staging.')
+  ],
+  edges:[['models','disp'],['disp','sfb',{mid:215}],['disp','dbb',{mid:215}],['sfb','sft'],['dbb','dbt_'],['sft','cmp'],['dbt_','cmp'],['cmp','gate'],['gate','cdb'],['gate','csf',{dashed:true}]],
+  scenarios:[
+  {name:'One model, two platforms',intro:'The same model compiles to different SQL on each platform, and the totals still match.',steps:[
+    S('1. Same SQL, no target checks',['models'],'The model billing__revenue_by_tariff_month calls month_trunc(invoice_date). It does not know the platform.','Platform logic lives in one place per construct, not in 72 models.',['dbt/models/marts/billing/billing__revenue_by_tariff_month.sql','docs/migration.md']),
+    S('2. month_trunc dispatches',['disp'],'On Snowflake date_trunc returns DATE. On Databricks date_trunc returns TIMESTAMP, so the macro uses trunc.','invoice_month is DATE on both targets.',['dbt/macros/compat/month_trunc.sql'],{tbl:T(['Target','Compiled SQL','Type'],[['snowflake','date_trunc(\'month\', d)','DATE'],['databricks','trunc(d, \'MM\')','DATE']])}),
+    S('3. hex_key dispatches',['disp'],'automate_dv stores hash keys as BINARY on Snowflake and as STRING on Databricks. hex_key turns both into upper-case hex text.','Hashing is not changed. Only the comparison is made equal.',['dbt/macros/compat/hex_key.sql'],{tbl:T(['Target','Compiled SQL','Result'],[['snowflake','upper(to_varchar(k, \'HEX\'))','hex text'],['databricks','upper(cast(k as string))','hex text']])}),
+    S('4. Two builds, one date at a time',['sfb','dbb'],'dbt build --target <target> --vars "{load_date: <date>}" runs for 2026-01-01 to 2026-01-05 on each platform. The run summary of every date shows 0 errors.','Same order of dates on both platforms gives the same history.',['docs/migration.md','dbt/profiles.yml'],{log:['uv run dbt build --project-dir dbt --profiles-dir dbt --target snowflake_dev','uv run dbt build --project-dir dbt --profiles-dir dbt --target databricks_dev']}),
+    S('5. Totals match the source',['sft','dbt_'],'Mart totals after 2026-01-05 against the expected totals seed.','The first proof before the full reconciliation.',['dbt/analyses/mart_vs_expected_totals.sql','docs/migration.md'],{tbl:T(['Target','Expected invoices','Mart invoices','Expected net','Mart net'],[['snowflake_dev','4421','4421','461626.22','461626.22'],['databricks_dev','4421','4421','461626.22','461626.22']])})
+  ]},
+  {name:'Reconciliation and go/no-go',intro:'Compare the two platforms table by table, then apply the go/no-go rule.',steps:[
+    S('1. recon__table_stats on both targets',['sft','dbt_'],'One row per table, 35 tables: hubs, links, same-as links, satellites, business vault masters and marts. Columns: row count, distinct keys, key min and max, key checksum, hashdiff checksum, measure sums, load date range.','Counts alone miss wrong values. Checksums on keys and hashdiffs and sums of real measures cover the payload.',['dbt/models/recon/recon__table_stats.sql','docs/cutover.md'],{log:['dbt show -s recon__table_stats --target snowflake_dev  > data/recon/snowflake_dev.json','dbt show -s recon__table_stats --target databricks_dev > data/recon/databricks_dev.json']}),
+    S('2. compare_recon.py reads both files',['cmp'],'The script compares every cell. Sums are rounded to 2 decimals so float noise does not count.','A table on one side only is a difference too.',['scripts/compare_recon.py','data/recon'],{tbl:T(['Table','Metric','Snowflake','Databricks'],[['hub_customer','row_count','4204','4204'],['hub_customer','key_checksum','17825358140301','17825358140301'],['hub_invoice','row_count','7612','7612'],['fct_invoice_line','row_count','17684','17684'],['fct_invoice_line','net_amount','461626.22','461626.22'],['fct_invoice_line','tax_amount','92325.66','92325.66']])}),
+    S('3. Exit code decides',['cmp'],'Exit 0 when every cell matches. Exit 1 with a table of differences. Exit 2 on an empty result or a duplicate table name.','A script has an exit code, so a pipeline can gate on it.',['scripts/compare_recon.py'],{log:['result after load date 2026-01-05: 0 differences in 35 tables']}),
+    S('4. Go rule: N clean dates in a row',['gate'],'Go when recon shows 0 differences for N consecutive load dates. This repo has 5 load dates, so N = 5. A real project covers at least one month-end.','Month-end is where edge cases live.',['docs/cutover.md'],{tbl:T(['Counter','Clean dates in a row','Decision'],[['1','1 of 5',ST('wait','keep going')],['3','3 of 5',ST('wait','keep going')],['5','5 of 5',ST('ok','go')]])}),
+    S('5. Example: one difference',['cmp','gate'],'Example of the rule, not from this repo. Any difference is no-go until the cause is fixed. N restarts from 0.','A fix must prove itself again for N dates.',['docs/cutover.md'],{fail:['gate'],tbl:T(['Counter','Recon','Decision'],[['3 of 5','1 difference',ST('fail','no-go')],['after the fix','0 of 5',ST('wait','restart')]])})
+  ]},
+  {name:'Cut-over and rollback',intro:'Consumers move in groups, the loader moves last, and Snowflake stays complete until the window ends.',steps:[
+    S('1. Parallel run',['sfb','dbb','csf'],'Both platforms load the same landing files. All consumers stay on Snowflake, the system of record.','Databricks can fail without any user noticing.',['docs/cutover.md'],{tbl:T(['Consumer group','Reads from'],[['Marts','Snowflake'],['Business vault','Snowflake'],['Raw vault and staging','Snowflake']])}),
+    S('2. Daily recon',['cmp'],'After each load date run the three commands and keep the output.','The evidence builds up day by day.',['docs/cutover.md','data/recon']),
+    S('3. Go decision',['gate'],'Recon is clean for N consecutive dates. Go.','The rule is fixed before the data arrives, so nobody bargains at the end.',['docs/cutover.md']),
+    S('4. Switch marts consumers',['cdb'],'BI dashboards and exports read marts on Databricks. Each step runs after the recon of that day is clean.','Marts first: the smallest and most visible surface.',['docs/cutover.md'],{tbl:T(['Consumer group','Reads from'],[['Marts',ST('ok','Databricks')],['Business vault','Snowflake'],['Raw vault and staging','Snowflake']])}),
+    S('5. Switch business vault consumers',['cdb'],'Next group, again after a clean recon.','One group per step keeps the blast radius small.',['docs/cutover.md'],{tbl:T(['Consumer group','Reads from'],[['Marts',ST('ok','Databricks')],['Business vault',ST('ok','Databricks')],['Raw vault and staging','Snowflake']])}),
+    S('6. Switch raw vault and staging consumers',['cdb'],'Ad-hoc queries and audits move last.','The riskiest consumers go when the platform has proven itself.',['docs/cutover.md'],{tbl:T(['Consumer group','Reads from'],[['Marts',ST('ok','Databricks')],['Business vault',ST('ok','Databricks')],['Raw vault and staging',ST('ok','Databricks')]])}),
+    S('7. Switch the loader',['dbb','models'],'Airflow runs the same DAGs against the Databricks target. The target comes from the environment variable DBT_TARGET, and the DAG files do not change. Loads keep running on both platforms.','A loader change, not a consumer change.',['airflow/include/vdwh_dbt.py','docs/airflow.md']),
+    S('8. Rollback window: 14 days',['gate','csf'],'Nobody reads from Snowflake, but its loads continue. Recon runs daily. Trigger: a recon difference, a failed build on Databricks, or a consumer who reports wrong numbers. Action: switch consumers back in reverse order. No replay is needed.','The window covers one full invoicing cycle. Because Snowflake never stopped, it is complete and current.',['docs/cutover.md'],{fail:['gate'],tbl:T(['Step','Order'],[['Raw vault and staging','back first'],['Business vault','second'],['Marts','last']])}),
+    S('9. End of the window',['sft'],'Stop the Snowflake loads, keep a final export and remove the Snowflake target from CI. Rollback is no longer possible.','The point of no return is explicit and comes late.',['docs/cutover.md'])
+  ]}]
+};
+
+function build(def){
+  const root=document.getElementById('sim-'+def.id);
+  let sc=0,i=-1,sel=null,timer=null;
+  const byId={};def.nodes.forEach(n=>byId[n.id]=n);
+  const kindOf=n=>n.kind==='bad_'?'af':n.kind;
+  const edgePath=e=>{
+    const a=byId[e[0]],b=byId[e[1]],o=e[2]||{};
+    if(Math.abs(a.y-b.y)<10){
+      const right=b.x>a.x;
+      const x1=right?a.x+a.w:a.x,x2=right?b.x:b.x+b.w;
+      return `M${x1},${a.y+a.h/2}H${x2}`;
+    }
+    const down=b.y>a.y;
+    const ax=a.x+a.w/2+(o.ax||0),ay=down?a.y+a.h:a.y,bx=b.x+b.w/2,by=down?b.y:b.y+b.h;
+    const mid=o.mid||(ay+by)/2;
+    if(Math.abs(ax-bx)<4)return `M${ax},${ay}V${by}`;
+    return `M${ax},${ay}V${mid}H${bx}V${by}`;
+  };
+  root.innerHTML=`<div class="bar"><label>Scenario <select aria-label="Scenario"></select></label><div class="btns"><button class="go" data-a="step">&#9654; Step</button><button data-a="back">&#9664; Back</button><button data-a="auto">Auto</button><button data-a="reset">&#9198; Reset</button></div><div class="count"></div></div><div class="pills"></div><div class="stage"><svg viewBox="0 0 ${W} ${def.H}" role="img" aria-label="${def.id} diagram"><defs><marker id="ar-${def.id}" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="arrow" d="M0,0L10,5L0,10z"/></marker></defs></svg></div><div class="cols"><div class="explain"></div><div class="data"></div></div>`;
+  const svg=root.querySelector('svg');
+  const sel_=root.querySelector('select');
+  def.scenarios.forEach((s,k)=>{const o=document.createElement('option');o.value=k;o.textContent=s.name;sel_.appendChild(o);});
+  let html='';
+  def.bands.forEach(b=>{html+=`<rect class="band" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="14"/><text class="bandt" text-anchor="end" x="${b.x+b.w-16}" y="${b.y+22}">${b.label}</text>`;});
+  def.edges.forEach((e,k)=>{html+=`<path class="edge${(e[2]&&e[2].dashed)?' dashed':''}" id="e-${def.id}-${k}" d="${edgePath(e)}" marker-end="url(#ar-${def.id})"/>`;});
+  def.nodes.forEach(n=>{
+    const k=kindOf(n);
+    const two=!!n.sub;
+    html+=`<g class="node k-${k}" id="n-${def.id}-${n.id}" tabindex="0" role="button" aria-label="${n.label}"><rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="12"/><text class="lb"${n.w<160?' style="font-size:13px"':''} x="${n.x+n.w/2}" y="${n.y+(two?n.h/2-4:n.h/2+5)}" text-anchor="middle">${n.label}</text>${two?`<text class="sb" x="${n.x+n.w/2}" y="${n.y+n.h/2+16}" text-anchor="middle">${n.sub}</text>`:''}</g>`;
+  });
+  svg.insertAdjacentHTML('beforeend',html);
+  const nodeEls={};def.nodes.forEach(n=>nodeEls[n.id]=document.getElementById('n-'+def.id+'-'+n.id));
+  const edgeEls=def.edges.map((e,k)=>document.getElementById('e-'+def.id+'-'+k));
+  const explain=root.querySelector('.explain'),data=root.querySelector('.data'),pills=root.querySelector('.pills'),count=root.querySelector('.count');
+  const btn=a=>root.querySelector(`[data-a=${a}]`);
+  const steps=()=>def.scenarios[sc].steps;
+  const links=f=>f.length?`<div class="files">${f.map(p=>`<a href="${GH+p}" target="_blank" rel="noopener">${p}</a>`).join('')}</div>`:'';
+  const cell=c=>{const m=/^(ok|run|wait|fail|idle)\|(.*)$/.exec(c);return m?`<span class="st ${m[1]}">${m[2]}</span>`:c;};
+  const table=t=>`<div class="tw"><table><thead><tr>${t.h.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${t.r.map(r=>`<tr>${r.map(c=>`<td>${cell(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  function paintPills(){
+    pills.innerHTML='';
+    steps().forEach((s,k)=>{const b=document.createElement('button');b.textContent=k+1;b.title=s.t;b.className=k===i?'now':(k<i?'past':'');b.onclick=()=>{stop();sel=null;i=k;paint();};pills.appendChild(b);});
+  }
+  function paint(){
+    const st=steps();
+    const cur=i>=0?st[i]:null;
+    const seen=new Set();for(let k=0;k<=i;k++)st[k].lit.forEach(x=>seen.add(x));
+    const lit=new Set(cur?cur.lit:[]),fail=new Set(cur?cur.fail:[]);
+    def.nodes.forEach(n=>{
+      const el=nodeEls[n.id];
+      let c='node k-'+kindOf(n);
+      if(i>=0)c+=lit.has(n.id)?' lit':(seen.has(n.id)?' seen':' dim');
+      if(fail.has(n.id))c+=' fail';
+      if(sel===n.id)c+=' sel';
+      el.setAttribute('class',c);
+    });
+    def.edges.forEach((e,k)=>{
+      let c='edge'+((e[2]&&e[2].dashed)?' dashed':'');
+      if(i>=0){if(lit.has(e[1])&&seen.has(e[0]))c+=' on';else if(seen.has(e[0])&&seen.has(e[1]))c+=' done';else c+=' dim';}
+      edgeEls[k].setAttribute('class',c);
+    });
+    paintPills();
+    count.textContent=i<0?`${st.length} steps`:`Step ${i+1} of ${st.length}`;
+    btn('step').disabled=i>=st.length-1;btn('back').disabled=i<0;
+    if(sel){
+      const n=byId[sel];
+      explain.innerHTML=`<span class="tag k-${kindOf(n)}">${n.label}</span><p>${n.info}</p>${links([n.file])}<p class="hint">Click the box again or press Step to go back to the scenario.</p>`;
+    }else if(cur){
+      explain.innerHTML=`<h3>${cur.t}</h3><p>${cur.w}</p><p class="y"><span class="lab">Why</span>${cur.y}</p>${links(cur.f)}`;
+    }else{
+      explain.innerHTML=`<h3>${def.scenarios[sc].name}</h3><p>${def.scenarios[sc].intro}</p><p class="hint">Press Step, click a numbered pill, or click any box in the diagram.</p>`;
+    }
+    let d='';
+    if(cur&&cur.tbl)d+=`<p class="cap">State</p>`+table(cur.tbl);
+    if(cur&&cur.log.length)d+=`<pre class="log">${cur.log.map(l=>/ALERT|Error|failed|no prod/.test(l)?`<span class="e">${l}</span>`:l).join('\n')}</pre>`;
+    if(!d)d=`<p class="hint">${cur?'This step changes no table. Look at the highlighted boxes.':'The state tables and log lines of each step appear here.'}</p>`;
+    data.innerHTML=d;
+  }
+  function stop(){if(timer){clearInterval(timer);timer=null;btn('auto').classList.remove('on');btn('auto').textContent='Auto';}}
+  function next(){sel=null;if(i<steps().length-1){i++;paint();}else stop();}
+  btn('step').onclick=()=>{stop();next();};
+  btn('back').onclick=()=>{stop();sel=null;if(i>=0){i--;paint();}};
+  btn('reset').onclick=()=>{stop();sel=null;i=-1;paint();};
+  btn('auto').onclick=()=>{
+    if(timer){stop();return;}
+    if(i>=steps().length-1)i=-1;
+    btn('auto').classList.add('on');btn('auto').textContent='Pause';
+    next();
+    timer=setInterval(()=>{next();},2600);
+  };
+  sel_.onchange=()=>{stop();sc=+sel_.value;i=-1;sel=null;paint();};
+  def.nodes.forEach(n=>{
+    const pick=()=>{stop();sel=sel===n.id?null:n.id;paint();};
+    nodeEls[n.id].addEventListener('click',pick);
+    nodeEls[n.id].addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();pick();}});
+  });
+  paint();
+}
+[airflow,cicd,migration].forEach(build);
+</script>
+</body>
+</html>

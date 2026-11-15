@@ -1,0 +1,74 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  LOAD_DATES: 2026-01-01 2026-01-02 2026-01-03 2026-01-04 2026-01-05
+
+jobs:
+  build-prod:
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      DBT_PROJECT_DIR: dbt
+      DBT_PROFILES_DIR: dbt
+      DBT_TARGET: snowflake_prod
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - run: uv run dbt deps
+      - name: Build prod one load date at a time
+        run: |
+          set -euo pipefail
+          read -ra dates <<< "$LOAD_DATES"
+          last=$(( ${#dates[@]} - 1 ))
+          for i in "${!dates[@]}"; do
+            flags=()
+            [ "$i" -eq 0 ] && flags+=(--full-refresh)
+            [ "$i" -lt "$last" ] && flags+=(--exclude-resource-type test)
+            echo "::group::load_date ${dates[$i]}"
+            uv run dbt build "${flags[@]}" --vars "{load_date: '${dates[$i]}'}"
+            echo "::endgroup::"
+          done
+          echo "LAST_LOAD_DATE=${dates[$last]}" >> "$GITHUB_ENV"
+      - name: Generate dbt docs
+        run: |
+          uv run dbt docs generate --vars "{load_date: '$LAST_LOAD_DATE'}"
+      - name: Collect docs site
+        run: |
+          mkdir -p "$RUNNER_TEMP/site"
+          cp dbt/target/index.html dbt/target/catalog.json dbt/target/manifest.json dbt/target/run_results.json "$RUNNER_TEMP/site/"
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/site
+
+  publish-docs:
+    needs: build-prod
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v6
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -3,6 +3,12 @@ with vault_load_date as (
     from {{ ref('hub_invoice') }}
 ),
 
+required_metrics as (
+    select 'invoiced_net_total' as metric
+    union all
+    select 'invoice_count' as metric
+),
+
 mart_totals as (
     select
         'invoiced_net_total' as metric,
@@ -13,24 +19,19 @@ mart_totals as (
         'invoice_count' as metric,
         cast(count(distinct invoice_no) as decimal(18, 2)) as mart_value
     from {{ ref('fct_invoice_line') }}
-),
-
-expected as (
-    select
-        expected_totals.metric,
-        expected_totals.value as expected_value
-    from {{ ref('expected_totals') }} as expected_totals
-    inner join vault_load_date
-        on expected_totals.load_date = vault_load_date.load_date
-    where expected_totals.metric in ('invoiced_net_total', 'invoice_count')
 )
 
 select
-    expected.metric,
-    expected.expected_value,
+    required_metrics.metric,
+    expected_totals.value as expected_value,
     mart_totals.mart_value
-from expected
+from required_metrics
+cross join vault_load_date
+left join {{ ref('expected_totals') }} as expected_totals
+    on required_metrics.metric = expected_totals.metric
+        and vault_load_date.load_date = expected_totals.load_date
 left join mart_totals
-    on expected.metric = mart_totals.metric
-where mart_totals.mart_value is null
-    or mart_totals.mart_value != expected.expected_value
+    on required_metrics.metric = mart_totals.metric
+where expected_totals.value is null
+    or mart_totals.mart_value is null
+    or mart_totals.mart_value != expected_totals.value

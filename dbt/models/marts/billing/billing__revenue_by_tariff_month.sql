@@ -6,7 +6,7 @@ with invoice_lines as (
         kwh,
         net_amount,
         tax_amount,
-        date_trunc('month', invoice_date) as invoice_month
+        cast(date_trunc('month', invoice_date) as date) as invoice_month
     from {{ ref('fct_invoice_line') }}
 )
 

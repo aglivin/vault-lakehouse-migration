@@ -3,6 +3,11 @@
 Public portfolio repo: Data Vault 2.0 with dbt Core on Snowflake, orchestrated by Airflow, CI/CD on GitHub Actions,
 migrated to Databricks. Roadmap and scope: `README.md`.
 
+## Start here
+
+- Private context (why this repo exists, deadlines, priorities) is in Basic Memory, project `main`, folder `career/`. Read it before planning. Never copy it into the repo.
+- Phase 0 is done: Snowflake (`snow` connection `personal`), Databricks (CLI profile `personal`), `dbt debug` passes on `snowflake_dev` and `databricks_dev`, Docker and Astro CLI installed. Next: Phase 1 in `README.md`.
+
 ## Authorship (hard rule)
 
 - Every commit, tag, PR, review comment and deployment is made **as Andrei Glivinschi** (the local git user and the `gh` account `aglivin`).

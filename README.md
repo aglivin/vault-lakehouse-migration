@@ -25,16 +25,8 @@ Editable source of all diagrams: [`docs/architecture.drawio`](docs/architecture.
 Each layer is a folder of dbt models. The example models are real.
 
 ```mermaid
-flowchart TB
-    subgraph R1[" "]
-        direction LR
-        LAND["Landing<br/>CSV files per load date"] --> RAWT["raw<br/>raw.crm_v1__customers"] --> STG["staging<br/>stg_crm_v1__customers"] --> RV["raw vault<br/>hub_customer<br/>sat_customer_details_crm_v1"]
-    end
-    subgraph R2[" "]
-        direction LR
-        BV["business vault<br/>bv_customer_master<br/>pit_customer"] --> MT["marts<br/>fct_invoice_line<br/>billing__revenue_by_tariff_month"] --> CONS["Consumers<br/>billing, sales, tax, call centre"]
-    end
-    RV --> BV
+flowchart LR
+    LAND["<b>Landing</b><br/>CSV per<br/>load date"] --> RAWT["<b>raw</b><br/>crm_v1__<br/>customers"] --> STG["<b>staging</b><br/>stg_crm_v1__<br/>customers"] --> RV["<b>raw vault</b><br/>hub_customer<br/>sat_customer_*"] --> BV["<b>business vault</b><br/>bv_customer_master<br/>pit_customer"] --> MT["<b>marts</b><br/>fct_invoice_line<br/>dim_customer"] --> CONS["<b>consumers</b><br/>billing, sales<br/>tax, call centre"]
     classDef raw fill:#f5e6d3,stroke:#92400e,color:#111827
     classDef stg fill:#ffffff,stroke:#92400e,color:#111827
     classDef hub fill:#dbeafe,stroke:#2563eb,color:#111827
@@ -47,8 +39,6 @@ flowchart TB
     class BV bv
     class MT mart
     class CONS user
-    style R1 fill:#ffffff,stroke:#ffffff
-    style R2 fill:#ffffff,stroke:#ffffff
     linkStyle default stroke:#6b7280,stroke-width:2px
 ```
 

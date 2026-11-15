@@ -44,22 +44,23 @@ Full diagram, 3 pages: [platform](docs/architecture-platform.drawio.svg), [vault
 1. **Vault model**: [`dbt/models/raw_vault`](dbt/models/raw_vault) and the [vault model diagram](docs/architecture-vault-model.drawio.svg).
 2. **Source change** (Billing and CRM replaced mid-project, marts unchanged): [`docs/source-change.md`](docs/source-change.md).
 3. **Migration** Snowflake to Databricks: [`docs/migration.md`](docs/migration.md) and [`docs/cutover.md`](docs/cutover.md).
-4. **Airflow DAG**: [`docs/img/airflow_graph.png`](docs/img/airflow_graph.png). The screenshot lands with the Airflow PR.
+4. **Airflow**: [`docs/airflow.md`](docs/airflow.md) (asset scheduling, alerts, backfill, target switch) and the [DAG graph](docs/img/airflow_graph.png).
 5. **CI**: [runs of `ci.yml`](https://github.com/aglivin/vault-lakehouse-migration/actions/workflows/ci.yml), lint and slim build on every PR.
 
 A timed script for a live demo: [`docs/walkthrough.md`](docs/walkthrough.md). How AI tooling was used: [`docs/ai-notes.md`](docs/ai-notes.md).
 
 ## Results
 
-Hub, link and mart numbers measured on `databricks_dev` after load date 2026-01-05. Every number comes from a query or script in the repo.
+Hub, link and mart numbers measured on `snowflake_dev` after load date 2026-01-05 with `dbt show -s <analysis>`. Every number comes from a query or script in the repo.
 
 | What | Result | Source |
 |---|---|---|
 | Hubs | customer 4204, contract 4153, meter 4204, invoice 7612, tariff 12 | `dbt/analyses/vault_row_counts.sql` |
 | Links | customer-contract 4153, contract-meter 4153, contract-invoice 7612, invoice-tariff 7612 | `dbt/analyses/vault_row_counts.sql` |
 | Mart vs expected totals | 4421 invoices, net total 461626.22 on both sides | `dbt/analyses/mart_vs_expected_totals.sql` |
-| Snowflake vs Databricks | 0 differences in 35 tables | `scripts/compare_recon.py` on `data/recon/*.json` |
-| dbt tests | 139 | `uv run dbt ls --project-dir dbt --profiles-dir dbt --resource-type test \| wc -l` |
+| Snowflake vs Databricks | 0 differences in 35 tables (snapshot taken before the star-schema PRs, see Known limits) | `scripts/compare_recon.py` on `data/recon/*.json` |
+| dbt models | 72 | `uv run dbt ls --project-dir dbt --profiles-dir dbt --resource-type model \| wc -l` |
+| dbt tests | 226 | `uv run dbt ls --project-dir dbt --profiles-dir dbt --resource-type test \| wc -l` |
 
 ## Quickstart
 
@@ -78,6 +79,11 @@ scripts/build_by_load_date.sh --project-dir dbt --profiles-dir dbt --target snow
 ```
 
 Fill in `.env` after the copy. `dbt/profiles.yml` reads env vars only. For Databricks use `--target databricks_dev` and `--target databricks` in the upload script. The build script runs `dbt build` once per load date.
+
+## Known limits
+
+- Databricks: the Unity Catalog metastore table quota of the free workspace is full (dropped tables still count until their retention ends). Models added after the reconciliation snapshot are built and tested on Snowflake only. The Airflow target switch ran 91 of 92 tasks green on Databricks; the last one needs a new table.
+- Volumes are small (2000 customers by default, 50 000 for the performance runs).
 
 ## Roadmap
 
@@ -170,9 +176,10 @@ Fill in `.env` after the copy. `dbt/profiles.yml` reads env vars only. For Datab
 ```
 data_generator/   synthetic source generator (Billing v1/v2, CRM v1/v2)
 dbt/              dbt project: staging, raw_vault, business_vault, marts, recon
+airflow/          Astro project: DAGs vdwh_ingest and vdwh_transform (Cosmos)
 scripts/          landing upload, per-date build, Snowflake vs Databricks comparison
 .github/workflows CI, deploy, attribution check
-docs/             diagram, walkthrough, source change, migration, cut-over, AI notes
+docs/             diagram, walkthrough, loading, source change, migration, cut-over, Airflow, performance, AI notes
 ```
 
 Work in progress. Unticked boxes are not done.

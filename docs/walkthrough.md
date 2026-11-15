@@ -37,13 +37,13 @@ Open: [`docs/migration.md`](migration.md), [`dbt/macros/compat/month_trunc.sql`]
 
 ## 5. Airflow and CI (45 s)
 
-Open: `docs/img/airflow_graph.png` (lands with the Airflow PR), [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml).
+Open: [`docs/img/airflow_graph.png`](img/airflow_graph.png), [`docs/airflow.md`](airflow.md), [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml).
 
-- Airflow runs one DAG run per load date. Cosmos renders dbt models as tasks. The env var `DBT_TARGET` switches Snowflake to Databricks without a DAG change.
+- `vdwh_ingest` loads one date and emits the asset `vdwh/raw_landed` with that date. `vdwh_transform` runs on the asset and builds that date. Cosmos renders dbt models as tasks. The env var `DBT_TARGET` switches Snowflake to Databricks without a DAG change.
 - Slim CI on a pull request builds `state:modified+` against a PR schema. It fetches the prod manifest from GitHub Pages.
 - A push to `main` deploys to prod and publishes the dbt docs.
 
 ## 6. Honest close (15 s)
 
 - This is a thin slice, not a platform. The data is synthetic and the volumes are small (2000 customers).
-- The performance numbers and the Databricks DAG run are still open items. The roadmap in the README shows what is done and what is not.
+- The Databricks DAG run and the warehouse sizing comparison are still open; the Unity Catalog table quota of the free workspace is full. The roadmap in the README shows what is done and what is not.

@@ -36,3 +36,10 @@ Found in review of the star-schema work before merge:
 
 - Payment dedup across v1 and v2 could merge equal payments of the same source.
 - `dim_contract.status` mixed `active` and `ACTIVE` after the source change.
+- Contacts had the same cross-source dedup bug as payments. The fix counts the occurrence per source and adds a test.
+
+Found by running, after merge or between PRs:
+
+- **Re-running a past load date added rows.** A rerun of 2026-01-04 after 2026-01-05 added 63 rows to `sat_customer_details_crm_v2`, because `automate_dv` compares the stage only with the newest row per key. The fix skips same-or-later load dates in every vault table (PR 28, [`docs/loading.md`](loading.md)). `scripts/rerun_check.sh` proves it.
+- **CI race.** Slim CI deferred to the prod manifest while the deploy job was rebuilding prod, and a relationships test failed. Slim CI now waits for a running deploy (PR 22).
+- **Shared scratch space.** Two parallel agents wrote scripts to the same scratch folder and ran each other's builds. Each agent now has its own worktree, dev schema (`DBT_DEV_SCHEMA`) and scratch folder.

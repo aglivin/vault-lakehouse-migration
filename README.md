@@ -100,7 +100,7 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 ### Phase 4 — Business vault and marts
 
-- [ ] PIT tables and bridge tables for query performance
+- [x] PIT tables and bridge tables for query performance
 - [ ] Star schema: `fct_invoice_line`, `fct_payment`, `dim_customer` (SCD2), `dim_contract`, `dim_tariff`, `dim_date`
 - [ ] Data products: billing, sales, tax, call centre
 - [ ] dbt docs and exposures; semantic definitions for the main metrics

@@ -39,11 +39,21 @@ def test_dag_has_deadline_alert(dag_bag, dag_id):
     assert dag_bag.dags[dag_id].deadline
 
 
-def test_ingest_publishes_raw_landed_after_load_raw(dag_bag):
+@pytest.mark.parametrize("dag_id", DAG_IDS)
+def test_dag_does_not_install_dbt_packages(dag_bag, dag_id):
+    assert "dbt_deps" not in dag_bag.dags[dag_id].task_ids
+
+
+def test_transform_has_no_params(dag_bag):
+    assert not dag_bag.dags["vdwh_transform"].params
+
+
+def test_ingest_publishes_raw_landed_after_transform_is_idle(dag_bag):
     dag = dag_bag.dags["vdwh_ingest"]
     publisher = dag.get_task("publish_raw_landed")
     assert publisher.outlets == [RAW_LANDED]
-    assert publisher.upstream_task_ids == {"load_raw"}
+    assert publisher.upstream_task_ids == {"wait_for_idle_transform"}
+    assert dag.get_task("wait_for_idle_transform").upstream_task_ids == {"load_raw"}
     assert [task.task_id for task in dag.tasks if task.outlets] == ["publish_raw_landed"]
 
 

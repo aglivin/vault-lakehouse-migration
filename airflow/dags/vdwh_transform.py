@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 
-from airflow.sdk import Param, dag, task
+from airflow.sdk import dag, task
 from cosmos import DbtTaskGroup, ExecutionConfig, ProjectConfig, RenderConfig
 from cosmos.constants import TestIndirectSelection
 from cosmos.operators.local import DbtSeedLocalOperator, DbtTestLocalOperator
 
 from include.vdwh_alerts import notify_failure, run_deadline
 from include.vdwh_assets import RAW_LANDED, single_load_date
-from include.vdwh_dbt import DBT_EXECUTABLE, DBT_PROJECT_DIR, dbt_deps_task, profile_config
+from include.vdwh_dbt import DBT_EXECUTABLE, DBT_PROJECT_DIR, profile_config
 
 CROSS_LAYER_TESTS = ["tag:cross_layer"]
 LAYERS = ["staging", "raw_vault", "business_vault", "marts"]
@@ -19,11 +19,7 @@ execution_config = ExecutionConfig(
     install_dbt_deps=False,
     test_indirect_selection=TestIndirectSelection.CAUTIOUS,
 )
-operator_args = {
-    "append_env": True,
-    "vars": {"load_date": LOAD_DATE},
-    "full_refresh": "{{ params.full_refresh }}",
-}
+operator_args = {"append_env": True, "vars": {"load_date": LOAD_DATE}}
 
 
 @task
@@ -39,13 +35,6 @@ def resolve_load_date(*, triggering_asset_events) -> str:
     is_paused_upon_creation=True,
     max_active_runs=1,
     render_template_as_native_obj=True,
-    params={
-        "full_refresh": Param(
-            False,
-            type="boolean",
-            description="Rebuilds the incremental vault from the run date only. Use it for the first date.",
-        )
-    },
     deadline=run_deadline(timedelta(minutes=60)),
     default_args={
         "retries": 2,
@@ -62,7 +51,7 @@ def vdwh_transform():
         append_env=True,
         install_deps=False,
     )
-    previous = resolve_load_date() >> dbt_deps_task() >> dbt_seed
+    previous = resolve_load_date() >> dbt_seed
     for layer in LAYERS:
         group = DbtTaskGroup(
             group_id=layer,

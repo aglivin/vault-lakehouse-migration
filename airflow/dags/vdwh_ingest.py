@@ -5,12 +5,17 @@ from cosmos.operators.local import DbtRunOperationLocalOperator
 
 from include.vdwh_alerts import notify_failure, run_deadline
 from include.vdwh_assets import LOAD_DATE_KEY, RAW_LANDED
-from include.vdwh_dbt import DBT_EXECUTABLE, DBT_PROJECT_DIR, dbt_deps_task, profile_config
+from include.vdwh_dbt import DBT_EXECUTABLE, DBT_PROJECT_DIR, profile_config
 
 
 @task(outlets=[RAW_LANDED])
 def publish_raw_landed(*, outlet_events, ds):
     outlet_events[RAW_LANDED].extra = {LOAD_DATE_KEY: ds}
+
+
+@task.sensor(poke_interval=30, timeout=3600, mode="reschedule")
+def wait_for_idle_transform(*, ti) -> bool:
+    return ti.get_dr_count(dag_id="vdwh_transform", states=["queued", "running"]) == 0
 
 
 @dag(
@@ -39,7 +44,7 @@ def vdwh_ingest():
         append_env=True,
         install_deps=False,
     )
-    dbt_deps_task() >> load_raw >> publish_raw_landed()
+    load_raw >> wait_for_idle_transform() >> publish_raw_landed()
 
 
 vdwh_ingest()

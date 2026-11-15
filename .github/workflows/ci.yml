@@ -5,9 +5,15 @@ on:
   push:
     branches: [main]
 
+env:
+  PROD_MANIFEST_URL: https://aglivin.github.io/vault-lakehouse-migration/manifest.json
+  LOAD_DATES: 2026-01-01 2026-01-02 2026-01-03 2026-01-04 2026-01-05
+
 jobs:
   checks:
     runs-on: ubuntu-latest
+    outputs:
+      warehouse-secrets: ${{ steps.secrets.outputs.present }}
     env:
       SNOWFLAKE_ACCOUNT: dummy
       SNOWFLAKE_USER: dummy
@@ -16,6 +22,8 @@ jobs:
       SNOWFLAKE_WAREHOUSE: dummy
       SNOWFLAKE_DATABASE: dummy
     steps:
+      - id: secrets
+        run: echo "present=${{ secrets.SNOWFLAKE_PRIVATE_KEY != '' }}" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync
@@ -23,3 +31,59 @@ jobs:
       - run: uv run dbt deps --project-dir dbt --profiles-dir dbt --target snowflake_dev
       - run: uv run sqlfluff lint dbt/models
       - run: uv run dbt parse --project-dir dbt --profiles-dir dbt --target snowflake_dev
+
+  dbt-slim:
+    needs: checks
+    if: github.event_name == 'pull_request' && needs.checks.outputs.warehouse-secrets == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: dbt-slim-${{ github.event.pull_request.number }}
+    env:
+      DBT_PROJECT_DIR: dbt
+      DBT_PROFILES_DIR: dbt
+      DBT_TARGET: snowflake_ci
+      DBT_SCHEMA: ci_pr_${{ github.event.pull_request.number }}
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - run: uv run dbt deps
+      - name: Fetch prod manifest
+        id: state
+        run: |
+          mkdir -p "$RUNNER_TEMP/prod-manifest"
+          if curl -fsSL "$PROD_MANIFEST_URL" -o "$RUNNER_TEMP/prod-manifest/manifest.json"; then
+            echo "mode=slim" >> "$GITHUB_OUTPUT"
+            echo "prod manifest found, building state:modified+ with defer"
+          else
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+            echo "no prod manifest, building the whole project"
+          fi
+      - name: Build one load date at a time
+        env:
+          MODE: ${{ steps.state.outputs.mode }}
+        run: |
+          set -euo pipefail
+          selection=()
+          if [ "$MODE" = slim ]; then
+            selection=(--select "state:modified+" "1+state:modified+,config.materialized:view" --defer --state "$RUNNER_TEMP/prod-manifest")
+          fi
+          read -ra dates <<< "$LOAD_DATES"
+          last=$(( ${#dates[@]} - 1 ))
+          for i in "${!dates[@]}"; do
+            flags=()
+            [ "$i" -eq 0 ] && flags+=(--full-refresh)
+            [ "$i" -lt "$last" ] && flags+=(--exclude-resource-type test)
+            echo "::group::load_date ${dates[$i]}"
+            uv run dbt build "${selection[@]}" "${flags[@]}" --vars "{load_date: '${dates[$i]}'}"
+            echo "::endgroup::"
+          done
+      - name: Drop PR schemas
+        if: always()
+        run: uv run dbt run-operation drop_pr_schemas

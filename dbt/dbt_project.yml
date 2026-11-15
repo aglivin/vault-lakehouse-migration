@@ -21,6 +21,9 @@ models:
     marts:
       +materialized: table
       +schema: marts
+    recon:
+      +materialized: table
+      +schema: recon
 
 vars:
   hash: SHA

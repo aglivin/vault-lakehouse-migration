@@ -10,3 +10,4 @@ dbt/models/raw_vault/links/sal_*.sql
 dbt/models/raw_vault/sats/sat_*.sql
 dbt/models/raw_vault/sats/eff_sat_*.sql
 dbt/models/staging/crm_v1/stg_crm_v1__customer_phones_current.sql
+dbt/models/recon/recon__table_stats.sql

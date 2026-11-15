@@ -1,6 +1,7 @@
 from datetime import date
 
 NEW_CUSTOMER_SHARE = 0.02
+NEW_CUSTOMER_SHARE_V2 = 0.01
 UPDATE_SHARE = 0.03
 DELETE_SHARE = 0.005
 INVOICE_SHARE = 0.3
@@ -57,15 +58,16 @@ def handle_recreated_contract(builder, day: date) -> None:
     builder.add_contract(last["customer_no"], day, last["contract_no"], last["meter_no"])
 
 
-def apply_delta_day(builder, day: date) -> None:
+def apply_delta_day(builder, day: date, v2: bool = False) -> None:
     pool = sorted(builder.contracts)
-    handle_recreated_contract(builder, day)
+    if not v2:
+        handle_recreated_contract(builder, day)
     pool = [n for n in pool if n in builder.contracts and n != builder.world.recreated_contract_no]
     churn_contracts(builder, day, pool)
     delete_phones(builder, day)
     for customer_no in pick(builder, sorted(builder.customers), UPDATE_SHARE):
         update_customer(builder, customer_no, day)
-    for _ in range(max(1, round(len(builder.customers) * NEW_CUSTOMER_SHARE))):
+    for _ in range(max(1, round(len(builder.customers) * (NEW_CUSTOMER_SHARE_V2 if v2 else NEW_CUSTOMER_SHARE)))):
         builder.add_customer(day)
     live = sorted(n for n, r in builder.contracts.items() if r["status"] == "active")
     for contract_no in pick(builder, live, INVOICE_SHARE):

@@ -25,6 +25,7 @@ models:
 vars:
   hash: SHA
   load_date: null
+  cutover_date: '2026-01-04'
   raw_entities:
     crm_v1__customers: [customer_no, first_name, last_name, email, birth_date, street, city, postal_code, segment, updated_at, op]
     crm_v1__customer_phones: [customer_no, phone_type, phone_number, op]
@@ -35,3 +36,14 @@ vars:
     billing_v1__invoices: [invoice_no, contract_no, invoice_date, period_from, period_to, due_date]
     billing_v1__invoice_lines: [invoice_no, line_no, tariff_code, line_type, kwh, net_amount, tax_rate, tax_amount]
     billing_v1__payments: [payment_id, invoice_no, payment_date, amount]
+    crm_v2__accounts: [account_uuid, given_name, family_name, email_address, date_of_birth, street_line, town, zip, customer_segment, changed_at, op]
+    crm_v2__account_phones: [account_uuid, phone_kind, phone_value, op]
+    crm_v2__interactions: [interaction_id, account_uuid, occurred_at, channel, topic, first_contact_resolution]
+    crm_v2__key_map: [entity, v1_key, v2_key]
+    billing_v2__products: [product_code, commodity, product_name, unit_price_kwh, monthly_fee, available_from]
+    billing_v2__meter_points: [meter_point_id, commodity, installed_on]
+    billing_v2__agreements: [agreement_id, account_uuid, product_code, meter_point_id, valid_from, valid_to, agreement_status, op]
+    billing_v2__documents: [document_id, agreement_id, issued_on, billing_from, billing_to, payable_by]
+    billing_v2__document_lines: [document_id, position, product_code, charge_type, quantity_kwh, amount_net, vat_rate, vat_amount]
+    billing_v2__settlements: [settlement_id, document_id, settled_on, settled_amount]
+    billing_v2__key_map: [entity, v1_key, v2_key]

@@ -3,7 +3,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from data_generator.render_v1 import LAYOUT
+from data_generator.render_v1 import LAYOUT as LAYOUT_V1
+from data_generator.render_v2 import LAYOUT as LAYOUT_V2
 from scripts.upload_landing import build_commands
 
 
@@ -56,7 +57,26 @@ def test_raw_entities_match_generator_layout():
     project = yaml.safe_load((Path(__file__).resolve().parents[1] / "dbt" / "dbt_project.yml").read_text())
     expected = {
         f"{system}__{entity}": columns.split()
-        for system, entities in LAYOUT.items()
+        for system, entities in {**LAYOUT_V1, **LAYOUT_V2}.items()
         for entity, columns in entities.items()
     }
     assert project["vars"]["raw_entities"] == expected
+
+
+def test_cutover_date_var_matches_generator():
+    from data_generator.world import CUTOVER_DATE
+
+    project = yaml.safe_load((Path(__file__).resolve().parents[1] / "dbt" / "dbt_project.yml").read_text())
+    assert project["vars"]["cutover_date"] == CUTOVER_DATE.isoformat()
+
+
+def test_only_systems_of_the_load_date_are_uploaded(tmp_path):
+    for system in ["crm_v1", "crm_v2"]:
+        directory = tmp_path / system / "customers"
+        directory.mkdir(parents=True)
+        for day in ["2026-01-03", "2026-01-04"]:
+            (directory / f"{day}.csv").write_text("a\n")
+    before = build_commands("snowflake", "2026-01-03", tmp_path)
+    after = build_commands("snowflake", "2026-01-04", tmp_path)
+    assert [c[3] for c in before] == [str(tmp_path / "crm_v1/customers/2026-01-03.csv")]
+    assert [c[3] for c in after] == [str(tmp_path / "crm_v2/customers/2026-01-04.csv")]

@@ -7,9 +7,7 @@ from data_generator.world import LOAD_DATES, World
 
 def active_contracts(world: World, day) -> int:
     state = {}
-    for row in world.contracts:
-        if row["_load_date"] > day:
-            break
+    for row in sorted((r for r in world.contracts if r["_load_date"] <= day), key=lambda r: r["_load_date"]):
         if row["op"] == "D":
             state.pop(row["contract_no"], None)
         else:

@@ -1,0 +1,20 @@
+name: attribution
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  no-ai-attribution:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reject AI co-author trailers and footers
+        run: |
+          if git log --format='%an%n%ae%n%cn%n%ce%n%B' | grep -iE 'co-authored-by:.*(claude|anthropic|copilot)|generated with \[?claude|noreply@anthropic\.com'; then
+            echo "AI attribution found in commit history"
+            exit 1
+          fi

@@ -1,0 +1,23 @@
+name: vdwh
+version: "0.1.0"
+config-version: 2
+profile: vdwh
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+models:
+  vdwh:
+    staging:
+      +materialized: view
+      +schema: staging
+    raw_vault:
+      +materialized: incremental
+      +schema: raw_vault
+    business_vault:
+      +materialized: table
+      +schema: business_vault
+    marts:
+      +materialized: table
+      +schema: marts

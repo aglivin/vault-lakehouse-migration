@@ -108,8 +108,8 @@ marts          star schemas and data products (billing, sales, tax, call centre)
 
 ### Phase 5 — Airflow
 
-- [ ] Astro project, local Airflow in Docker
-- [ ] DAG: ingest → `dbt build` per layer with Cosmos (one task per model, tests included)
+- [x] Astro project, local Airflow in Docker
+- [x] DAG: ingest → `dbt build` per layer with Cosmos (one task per model, tests included)
 - [ ] Sensors / dataset-driven scheduling between ingest and transform
 - [ ] Retries, SLAs, alerting on failure
 - [ ] Backfill of a past load date

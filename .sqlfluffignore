@@ -1,2 +1,4 @@
 dbt/models/staging/**/stg_*.sql
 dbt/models/raw_vault/hubs/hub_*.sql
+dbt/models/raw_vault/links/link_*.sql
+dbt/models/raw_vault/sats/sat_*.sql

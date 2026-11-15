@@ -45,6 +45,27 @@ def test_hash_mismatch(tmp_path, capsys):
     assert "| hub_customer | key_max | FF | FE |" in capsys.readouterr().out
 
 
+def test_key_checksum_mismatch(tmp_path, capsys):
+    assert run(tmp_path, [ROW], [{**ROW, "key_checksum": "124"}]) == 1
+    assert "| hub_customer | key_checksum | 123 | 124 |" in capsys.readouterr().out
+
+
+def test_hex_keys_are_not_numerically_normalised(tmp_path):
+    left = {**ROW, "key_min": "1E3"}
+    right = {**ROW, "key_min": "1000"}
+    assert run(tmp_path, [left], [right]) == 1
+
+
+def test_zero_rows_fails(tmp_path, capsys):
+    assert run(tmp_path, [], []) == 2
+    assert "no rows" in capsys.readouterr().out
+
+
+def test_duplicate_table_fails(tmp_path, capsys):
+    assert run(tmp_path, [ROW, ROW], [ROW]) == 2
+    assert "duplicate table_name hub_customer" in capsys.readouterr().out
+
+
 def test_table_missing_on_one_side(tmp_path, capsys):
     other = {**ROW, "table_name": "hub_meter"}
     assert run(tmp_path, [ROW, other], [ROW]) == 1

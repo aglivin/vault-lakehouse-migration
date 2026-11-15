@@ -21,10 +21,15 @@ def parse_show_output(text: str) -> list[dict]:
     raise ValueError("no dbt show rows found")
 
 
-def normalise(value) -> str:
+NUMERIC_COLUMNS = {"row_count", "distinct_keys", "hashdiff_distinct"}
+
+
+def normalise(column: str, value) -> str:
     if value is None:
         return ""
     text = str(value)
+    if column not in NUMERIC_COLUMNS:
+        return text
     try:
         number = Decimal(text)
     except InvalidOperation:
@@ -33,10 +38,15 @@ def normalise(value) -> str:
 
 
 def index_rows(rows: list[dict]) -> dict[str, dict[str, str]]:
+    if not rows:
+        raise ValueError("no rows")
     indexed = {}
     for row in rows:
-        lowered = {name.lower(): normalise(value) for name, value in row.items()}
-        indexed[lowered[KEY_COLUMN]] = lowered
+        lowered = {name.lower(): normalise(name.lower(), value) for name, value in row.items()}
+        table = lowered[KEY_COLUMN]
+        if table in indexed:
+            raise ValueError(f"duplicate table_name {table}")
+        indexed[table] = lowered
     return indexed
 
 
@@ -72,10 +82,14 @@ def render(differences: list[tuple[str, str, str, str]], left_name: str, right_n
 
 def main(argv: list[str]) -> int:
     left_path, right_path = Path(argv[1]), Path(argv[2])
-    left_rows = parse_show_output(left_path.read_text())
-    right_rows = parse_show_output(right_path.read_text())
-    differences = compare(left_rows, right_rows)
-    tables = len(index_rows(left_rows).keys() | index_rows(right_rows).keys())
+    try:
+        left_rows = parse_show_output(left_path.read_text())
+        right_rows = parse_show_output(right_path.read_text())
+        differences = compare(left_rows, right_rows)
+        tables = len(index_rows(left_rows).keys() | index_rows(right_rows).keys())
+    except ValueError as error:
+        print(f"invalid input: {error}")
+        return 2
     if differences:
         print(render(differences, left_path.stem, right_path.stem))
         print(f"\n{len(differences)} differences in {tables} tables")

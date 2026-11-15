@@ -7,10 +7,12 @@
       "distinct_keys": 4204,
       "key_min": "0009A945330253835A30F7D30A90B33067BF8F49D2EA33A0CBEDD45BB43E6381",
       "key_max": "FFDA367F888DDA23BD0E77703D0E60226150DD5A5EE43559221A3670A6D6A93A",
-      "key_checksum": "8948011193487",
+      "key_checksum": "17825358140301",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-01",
+      "max_load_date": "2026-01-05"
     },
     {
       "table_name": "hub_contract",
@@ -18,10 +20,12 @@
       "distinct_keys": 4153,
       "key_min": "000D65B59DC5F9E80F4656A6044A1BD050D10471700B8DCE57BA2D3B5169AB7C",
       "key_max": "FFF02187A2961BB71EA70DB6A9FF48CDA146982A8D7BBA6BF8038228B11FBE35",
-      "key_checksum": "8871727124580",
+      "key_checksum": "17809886185405",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-01",
+      "max_load_date": "2026-01-05"
     },
     {
       "table_name": "hub_invoice",
@@ -29,10 +33,12 @@
       "distinct_keys": 7612,
       "key_min": "000258918AB321FF9EA0CC1D607EDDE06C338D3F72A9E1E667CC60AD84667B9D",
       "key_max": "FFF638AB49148750D63C7AF1A5A5DE63D21830E9FB5051B4518F23DC18F961F6",
-      "key_checksum": "16397583895797",
+      "key_checksum": "32706898273793",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-01",
+      "max_load_date": "2026-01-05"
     },
     {
       "table_name": "hub_meter",
@@ -40,10 +46,12 @@
       "distinct_keys": 4204,
       "key_min": "001922E37BEF631C591A8FFB1CE979A5D080956723C761DD771639C180B1C6A2",
       "key_max": "FFD120A1C909815740D539EA6FB8DA07038CA92D7C807EFE814E0265088A06B5",
-      "key_checksum": "8992741448359",
+      "key_checksum": "17941128051861",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-01",
+      "max_load_date": "2026-01-05"
     },
     {
       "table_name": "hub_tariff",
@@ -51,10 +59,12 @@
       "distinct_keys": 12,
       "key_min": "015E077AFE3FFD7770BBF23D77F488DD87B98F92D7380A78424EA6634AD790AC",
       "key_max": "E176994F4932C29616A7DC371E5FEF0B76AE4E2AB0BD3086B5A87443859159FE",
-      "key_checksum": "27960898377",
+      "key_checksum": "57595114151",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-01",
+      "max_load_date": "2026-01-04"
     },
     {
       "table_name": "link_customer_contract",
@@ -62,10 +72,12 @@
       "distinct_keys": 4153,
       "key_min": "004127DEAF28AD886D1488C1B2DB0298B533638C5E63341774374382952FD8A4",
       "key_max": "FFE89E76D224A8A9A8554B58843C928D02185ABEE7A1BF2622948CEE3317C33E",
-      "key_checksum": "8948404828366",
+      "key_checksum": "17890630041173",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-01",
+      "max_load_date": "2026-01-05"
     },
     {
       "table_name": "link_contract_meter",
@@ -73,10 +85,12 @@
       "distinct_keys": 4153,
       "key_min": "001189127CD3E929217D1AE5373A7B82DE4BC749B45E71332342774F07C7E1BC",
       "key_max": "FFFCD6A4F4B0408E503265733931FF38F3A420955BD6000B5EA21AAA2F6DD78C",
-      "key_checksum": "8881109113532",
+      "key_checksum": "17817484908449",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-01",
+      "max_load_date": "2026-01-05"
     },
     {
       "table_name": "link_contract_invoice",
@@ -84,10 +98,12 @@
       "distinct_keys": 7612,
       "key_min": "000CE1F2DDB3C6CBD24A9E94DDDD323635C40C549EF8A525D3F7F6167522E735",
       "key_max": "FFF9D162B48C278B8879B957231ADF9A02F11E9CDC800B6B0C345143AC805745",
-      "key_checksum": "16348694211873",
+      "key_checksum": "32519455023893",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-01",
+      "max_load_date": "2026-01-05"
     },
     {
       "table_name": "link_invoice_tariff",
@@ -95,10 +111,12 @@
       "distinct_keys": 7612,
       "key_min": "0017EDBD03AE24F53DABB34CA6E56DEAE3DB85401A5695EB5BD87FC6DED728C2",
       "key_max": "FFF8B9A7AA0F86FE44F80563FDE5838F81BECCC74B3DDF9CA7B9B22B5E8E744C",
-      "key_checksum": "16176709990443",
+      "key_checksum": "32393188379709",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-01",
+      "max_load_date": "2026-01-05"
     },
     {
       "table_name": "sal_customer",
@@ -106,10 +124,12 @@
       "distinct_keys": 2081,
       "key_min": "00776D90DA55D13DC0BDEC0C217DB7A4F48DAE5B2E578F676EAE19EEEF4B8598",
       "key_max": "FFE37507C954DB53BEB004546336BD2E1AB6AD6FC26B2854C683BB270A5CB3F4",
-      "key_checksum": "4432618219900",
+      "key_checksum": "8897169217009",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-04",
+      "max_load_date": "2026-01-04"
     },
     {
       "table_name": "sal_contract",
@@ -117,10 +137,12 @@
       "distinct_keys": 2030,
       "key_min": "000E301C28818B4F4C9B7ABC967E567F3DEB0A145F6D14DE3F36D944E8A1927A",
       "key_max": "FFDCCA6169722391482B040A5406A23E76AD0C9CD1FDFE4DAF6093F6A4B87E53",
-      "key_checksum": "4273928101520",
+      "key_checksum": "8567253072020",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-04",
+      "max_load_date": "2026-01-04"
     },
     {
       "table_name": "sal_invoice",
@@ -128,10 +150,12 @@
       "distinct_keys": 3191,
       "key_min": "000BD20B165DE026E50635548F1602681612A798D33E6182A510FF31C46DA173",
       "key_max": "FFF875EAD2849699491F8150A4AB7D72671B704E6E6B6806097B72DCDE0D7BC5",
-      "key_checksum": "6817631589216",
+      "key_checksum": "13554774147822",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-04",
+      "max_load_date": "2026-01-04"
     },
     {
       "table_name": "sal_meter",
@@ -139,10 +163,12 @@
       "distinct_keys": 2081,
       "key_min": "0003FAFEB39D061ABC475420D671B0AFC906919423D523E3FD77E53BB34868E1",
       "key_max": "FFC6DAA17008DA18C70F0B9FB0C0A8282AF38E3FBFE37C29F17DF45C14681ADF",
-      "key_checksum": "4510044440864",
+      "key_checksum": "8981364797313",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-04",
+      "max_load_date": "2026-01-04"
     },
     {
       "table_name": "sal_tariff",
@@ -150,10 +176,12 @@
       "distinct_keys": 6,
       "key_min": "0156EA0DEA1B9D930EE36F0E5E3F105BAA69FF234E8AF917594FE4F21CE21133",
       "key_max": "BC7C94593AD65FF7C74F02A1C5A0CD94210BB797172A60D8A185525BACF333AC",
-      "key_checksum": "5959902032",
+      "key_checksum": "20361199298",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
-      "min_load_date": null,
-      "max_load_date": null
+      "min_load_date": "2026-01-04",
+      "max_load_date": "2026-01-04"
     },
     {
       "table_name": "sat_customer_details_crm_v1",
@@ -161,7 +189,9 @@
       "distinct_keys": 2081,
       "key_min": "001F18FC433892B87BC124D936F9E7346A8E116198FCB293986DA37A94C25AA7",
       "key_max": "FFC5B175422750D94AEF68D460198FD9CB6BE05BF5DE1CC305DAF8D20A18AFC6",
-      "key_checksum": "4726968366612",
+      "key_checksum": "9350606065958",
+      "hashdiff_distinct": 2202,
+      "hashdiff_checksum": "9504791374128",
       "measure_sums": null,
       "min_load_date": "2026-01-01",
       "max_load_date": "2026-01-03"
@@ -172,7 +202,9 @@
       "distinct_keys": 2123,
       "key_min": "0009A945330253835A30F7D30A90B33067BF8F49D2EA33A0CBEDD45BB43E6381",
       "key_max": "FFDA367F888DDA23BD0E77703D0E60226150DD5A5EE43559221A3670A6D6A93A",
-      "key_checksum": "4608641163732",
+      "key_checksum": "9249089818286",
+      "hashdiff_distinct": 2186,
+      "hashdiff_checksum": "9290735018005",
       "measure_sums": null,
       "min_load_date": "2026-01-04",
       "max_load_date": "2026-01-05"
@@ -183,7 +215,9 @@
       "distinct_keys": 2081,
       "key_min": "001F18FC433892B87BC124D936F9E7346A8E116198FCB293986DA37A94C25AA7",
       "key_max": "FFC5B175422750D94AEF68D460198FD9CB6BE05BF5DE1CC305DAF8D20A18AFC6",
-      "key_checksum": "7111987669615",
+      "key_checksum": "14055045773049",
+      "hashdiff_distinct": 3234,
+      "hashdiff_checksum": "14348313072466",
       "measure_sums": null,
       "min_load_date": "2026-01-01",
       "max_load_date": "2026-01-03"
@@ -194,7 +228,9 @@
       "distinct_keys": 2081,
       "key_min": "000FB2C924B22B240396B3A2FDFFA1CB3FC22B8DB59208C48C0B4AB5DF297B9B",
       "key_max": "FFF02187A2961BB71EA70DB6A9FF48CDA146982A8D7BBA6BF8038228B11FBE35",
-      "key_checksum": "4677443130281",
+      "key_checksum": "9399078311057",
+      "hashdiff_distinct": 2201,
+      "hashdiff_checksum": "9461005051629",
       "measure_sums": null,
       "min_load_date": "2026-01-01",
       "max_load_date": "2026-01-03"
@@ -205,7 +241,9 @@
       "distinct_keys": 2072,
       "key_min": "000D65B59DC5F9E80F4656A6044A1BD050D10471700B8DCE57BA2D3B5169AB7C",
       "key_max": "FFD9E0F1732CED96E77231D1535F4F9440636C898FB014514023C16087ACC95B",
-      "key_checksum": "4573922687611",
+      "key_checksum": "9157182219442",
+      "hashdiff_distinct": 2129,
+      "hashdiff_checksum": "9152220505624",
       "measure_sums": null,
       "min_load_date": "2026-01-04",
       "max_load_date": "2026-01-05"
@@ -216,7 +254,9 @@
       "distinct_keys": 3256,
       "key_min": "000258918AB321FF9EA0CC1D607EDDE06C338D3F72A9E1E667CC60AD84667B9D",
       "key_max": "FFF12ACB8FA92A9AC96C3AC05C8C36500E5EC862F13094FEC8775725166EAD7A",
-      "key_checksum": "6915222971443",
+      "key_checksum": "13854066898166",
+      "hashdiff_distinct": 3,
+      "hashdiff_checksum": "12198941000328",
       "measure_sums": null,
       "min_load_date": "2026-01-01",
       "max_load_date": "2026-01-03"
@@ -227,7 +267,9 @@
       "distinct_keys": 4356,
       "key_min": "00112E5D9F719992052D54AB89881A900DFF9418F0B38BE19F943F53EF1465BB",
       "key_max": "FFF638AB49148750D63C7AF1A5A5DE63D21830E9FB5051B4518F23DC18F961F6",
-      "key_checksum": "9482360924354",
+      "key_checksum": "18852831375627",
+      "hashdiff_distinct": 5,
+      "hashdiff_checksum": "19606443711049",
       "measure_sums": null,
       "min_load_date": "2026-01-04",
       "max_load_date": "2026-01-05"
@@ -238,7 +280,9 @@
       "distinct_keys": 3256,
       "key_min": "000258918AB321FF9EA0CC1D607EDDE06C338D3F72A9E1E667CC60AD84667B9D",
       "key_max": "FFF12ACB8FA92A9AC96C3AC05C8C36500E5EC862F13094FEC8775725166EAD7A",
-      "key_checksum": "27660891885772",
+      "key_checksum": "55416267592664",
+      "hashdiff_distinct": 7182,
+      "hashdiff_checksum": "56570900874701",
       "measure_sums": "kwh=3139388.00;net_amount=343273.21;tax_amount=68654.89",
       "min_load_date": "2026-01-01",
       "max_load_date": "2026-01-03"
@@ -249,7 +293,9 @@
       "distinct_keys": 4356,
       "key_min": "00112E5D9F719992052D54AB89881A900DFF9418F0B38BE19F943F53EF1465BB",
       "key_max": "FFF638AB49148750D63C7AF1A5A5DE63D21830E9FB5051B4518F23DC18F961F6",
-      "key_checksum": "37929443697416",
+      "key_checksum": "75411325502508",
+      "hashdiff_distinct": 8820,
+      "hashdiff_checksum": "78595808747024",
       "measure_sums": "quantity_kwh=4160058.00;amount_net=454023.01;vat_amount=90805.02",
       "min_load_date": "2026-01-04",
       "max_load_date": "2026-01-05"
@@ -260,7 +306,9 @@
       "distinct_keys": 6,
       "key_min": "015E077AFE3FFD7770BBF23D77F488DD87B98F92D7380A78424EA6634AD790AC",
       "key_max": "E176994F4932C29616A7DC371E5FEF0B76AE4E2AB0BD3086B5A87443859159FE",
-      "key_checksum": "16017861968",
+      "key_checksum": "31861880441",
+      "hashdiff_distinct": 6,
+      "hashdiff_checksum": "25755690966",
       "measure_sums": "price_per_kwh=1.16;base_fee_month=32.40",
       "min_load_date": "2026-01-01",
       "max_load_date": "2026-01-01"
@@ -271,7 +319,9 @@
       "distinct_keys": 6,
       "key_min": "0B0E3694AD54B8B306D14C17B3BC208A0A00963A01FA8B4544750955AAF74A26",
       "key_max": "D91864A1FB2C3021C0C9D8E48AB19FDEF0B15FC5F694F8D8F555E004FA24123F",
-      "key_checksum": "11943036409",
+      "key_checksum": "25733233710",
+      "hashdiff_distinct": 6,
+      "hashdiff_checksum": "29149522215",
       "measure_sums": "unit_price_kwh=1.16;monthly_fee=32.40",
       "min_load_date": "2026-01-04",
       "max_load_date": "2026-01-04"
@@ -282,7 +332,9 @@
       "distinct_keys": 2081,
       "key_min": "00468729090CA0D2F31B0288D203950D928BD1CFC2DBD500336E2CA9A7468843",
       "key_max": "FFE89E76D224A8A9A8554B58843C928D02185ABEE7A1BF2622948CEE3317C33E",
-      "key_checksum": "4819047437641",
+      "key_checksum": "9652389521446",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
       "min_load_date": "2026-01-01",
       "max_load_date": "2026-01-03"
@@ -293,7 +345,9 @@
       "distinct_keys": 4153,
       "key_min": "000D65B59DC5F9E80F4656A6044A1BD050D10471700B8DCE57BA2D3B5169AB7C",
       "key_max": "FFF02187A2961BB71EA70DB6A9FF48CDA146982A8D7BBA6BF8038228B11FBE35",
-      "key_checksum": "9315236536207",
+      "key_checksum": "18688980192763",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
       "min_load_date": "2026-01-01",
       "max_load_date": "2026-01-05"
@@ -304,7 +358,9 @@
       "distinct_keys": 2123,
       "key_min": "001F18FC433892B87BC124D936F9E7346A8E116198FCB293986DA37A94C25AA7",
       "key_max": "FFC5B175422750D94AEF68D460198FD9CB6BE05BF5DE1CC305DAF8D20A18AFC6",
-      "key_checksum": "9045061927019",
+      "key_checksum": "17871100117670",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
       "min_load_date": null,
       "max_load_date": null
@@ -315,7 +371,9 @@
       "distinct_keys": 2123,
       "key_min": "000FB2C924B22B240396B3A2FDFFA1CB3FC22B8DB59208C48C0B4AB5DF297B9B",
       "key_max": "FFF02187A2961BB71EA70DB6A9FF48CDA146982A8D7BBA6BF8038228B11FBE35",
-      "key_checksum": "8819425376490",
+      "key_checksum": "17729451226331",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
       "min_load_date": null,
       "max_load_date": null
@@ -326,7 +384,9 @@
       "distinct_keys": 4421,
       "key_min": "000258918AB321FF9EA0CC1D607EDDE06C338D3F72A9E1E667CC60AD84667B9D",
       "key_max": "FFF12ACB8FA92A9AC96C3AC05C8C36500E5EC862F13094FEC8775725166EAD7A",
-      "key_checksum": "16217028225513",
+      "key_checksum": "32513108978065",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
       "min_load_date": null,
       "max_load_date": null
@@ -337,7 +397,9 @@
       "distinct_keys": 2123,
       "key_min": "0030D3B42357CB45BC0C6F96255D8A0761087CD754765462751307AE104E31C7",
       "key_max": "FFD120A1C909815740D539EA6FB8DA07038CA92D7C807EFE814E0265088A06B5",
-      "key_checksum": "9156111047144",
+      "key_checksum": "17977506590995",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
       "min_load_date": null,
       "max_load_date": null
@@ -348,7 +410,9 @@
       "distinct_keys": 6,
       "key_min": "015E077AFE3FFD7770BBF23D77F488DD87B98F92D7380A78424EA6634AD790AC",
       "key_max": "E176994F4932C29616A7DC371E5FEF0B76AE4E2AB0BD3086B5A87443859159FE",
-      "key_checksum": "32035723936",
+      "key_checksum": "63723760882",
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": null,
       "min_load_date": null,
       "max_load_date": null
@@ -360,6 +424,8 @@
       "key_min": null,
       "key_max": null,
       "key_checksum": null,
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": "kwh=4223786.00;net_amount=461626.22;tax_amount=92325.66",
       "min_load_date": null,
       "max_load_date": null
@@ -371,6 +437,8 @@
       "key_min": null,
       "key_max": null,
       "key_checksum": null,
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": "price_per_kwh=1.16;base_fee_month=32.40",
       "min_load_date": null,
       "max_load_date": null
@@ -382,6 +450,8 @@
       "key_min": null,
       "key_max": null,
       "key_checksum": null,
+      "hashdiff_distinct": null,
+      "hashdiff_checksum": null,
       "measure_sums": "invoice_count=4421.00;kwh=2111893.00;net_amount=461626.22;vat_amount=92325.66",
       "min_load_date": null,
       "max_load_date": null

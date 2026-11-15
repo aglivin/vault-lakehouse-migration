@@ -112,3 +112,28 @@ models:
               arguments:
                 to: ref('dim_date')
                 field: date_day
+  - name: fct_contact
+    description: >-
+      One row per customer contact. A v1 contact and its v2 interaction match on master customer, time, channel, reason and occurrence number
+      within the source (ordered by contact id); a matched pair counts once and keeps the v1 row.
+    columns:
+      - name: contact_id
+        data_tests: [unique, not_null]
+      - name: customer_no
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customer')
+                field: customer_no
+      - name: contact_date
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: channel
+        data_tests: [not_null]
+      - name: reason
+        data_tests: [not_null]
